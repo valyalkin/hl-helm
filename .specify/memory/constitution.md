@@ -1,20 +1,15 @@
 <!--
 Sync Impact Report
-Version change: 1.0.0 → 2.0.0
-Bump rationale: MAJOR. Principle III is redefined — the human review of a rendered diff moves
-  from apply time to a per-tier gate — and the Development Workflow's tagged-commit rule is
-  removed. Both change what compliance means, so this is a redefinition rather than expanded
-  guidance.
+Version change: 2.0.0 → 3.0.0
+Bump rationale: MAJOR. Principle II is redefined — the unit of packaging changes from the
+  individual workload to the application — which changes what compliance means for every chart.
 Modified principles:
-  I. Declarative Infrastructure as Code — clarified that applying a checked-in script or values
-     file is declarative; only unrecorded changes are imperative
-  III. Validate Before Apply — human review relocated per tier; validation chain unchanged
-Modified sections:
-  Development Workflow & Quality Gates — tagged-commit rule replaced with a per-tier deployment
-     rule; added infrastructure upgrade procedure and the drift-detection caveat
+  II. Chart-Per-Workload, Shared Library Chart → II. Chart-Per-Application, Shared Library Chart
+Modified sections: none
 Added sections: none
 Removed sections: none
 Deferred items: none
+Prior amendment (2.0.0): per-tier review gate in Principle III; tagged-commit rule replaced.
 -->
 
 # hl-helm Constitution
@@ -36,15 +31,20 @@ the repository or reverted within the same working session.
 Rationale: A homelab is rebuilt more often than it is maintained. If the repository cannot
 reproduce the cluster from an empty k3s node, the infrastructure is not actually maintainable.
 
-### II. Chart-Per-Workload, Shared Library Chart
+### II. Chart-Per-Application, Shared Library Chart
 
-Each independently deployable workload MUST have exactly one chart with a clear single purpose.
-Cross-cutting boilerplate (labels, resource limits, probes, ingress scaffolding, storage claims)
-MUST live in a shared library chart or named templates rather than being copy-pasted. Umbrella
-charts MAY group workloads for ordering, but MUST NOT embed workload-specific templates.
+Each application MUST have exactly one chart, which deploys every service that application is
+made of. An application's chart MUST NOT be split into one chart per service, and two
+applications MUST NOT share a chart. Cross-cutting boilerplate (labels, resource limits, probes,
+ingress scaffolding, storage claims) MUST live in a shared library chart, and a chart's
+per-service templates MUST delegate to it rather than restating it.
 
-Rationale: Copy-pasted manifests drift silently; a single shared template makes a convention
-change a one-line edit.
+Rationale: A Helm release conventionally is an application, and the repository follows Helm
+convention rather than a structure of its own devising. A chart per service multiplies releases,
+versions and deployment manifests without buying independence — Helm and the deployment agent
+apply diffs, so an unchanged service is untouched when its sibling changes. It also creates
+ownership conflicts over namespace-scoped resources that then need further invention to resolve.
+Copy-pasted manifests still drift silently, so the library chart requirement is unchanged.
 
 ### III. Validate Before Apply (NON-NEGOTIABLE)
 
@@ -164,4 +164,4 @@ Compliance is reviewed at every merge against the quality gates above, and re-re
 whenever the k3s version is upgraded. Runtime agent guidance lives in `CLAUDE.md` and MUST stay
 consistent with this document; where they conflict, this document wins.
 
-**Version**: 2.0.0 | **Ratified**: 2026-10-16 | **Last Amended**: 2026-10-16
+**Version**: 3.0.0 | **Ratified**: 2026-10-16 | **Last Amended**: 2026-10-17
