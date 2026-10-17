@@ -1,0 +1,57 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # chart_version_bumped.py diffs against the base branch
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+      - name: Install tooling
+        run: |
+          helm plugin install https://github.com/helm-unittest/helm-unittest --verify=false
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | sudo tar xz -C /usr/local/bin kubeconform
+          curl -sSL https://github.com/norwoodj/helm-docs/releases/download/v1.14.2/helm-docs_1.14.2_Linux_x86_64.tar.gz | sudo tar xz -C /usr/local/bin helm-docs
+          pip install pyyaml
+      - name: Gate (lint, template, unittest, kubeconform, policy, docs)
+        run: scripts/validate.sh
+      - name: Gate rejects deliberate violations
+        run: scripts/validate.sh --self-test
+
+  rendered-diff:
+    # Principle III: merging is deploying for the application tier, so the rendered diff is
+    # produced here and reviewed before merge.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+      - name: Render application charts at base and head
+        run: |
+          render() { # ref outdir
+            git worktree add -f "$2.wt" "$1" >/dev/null 2>&1 || return 0
+            mkdir -p "$2"
+            for c in "$2.wt"/charts/apps/*/; do
+              n=$(basename "$c")
+              helm dependency update "$c" >/dev/null 2>&1 && helm template "$n" "$c" -n "$n" > "$2/$n.yaml" || true
+            done
+          }
+          render "origin/${{ github.base_ref }}" /tmp/base
+          render HEAD /tmp/head
+          {
+            echo '## Rendered diff (application tier)'
+            echo '```diff'
+            diff -ru /tmp/base /tmp/head || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -218,16 +218,16 @@ time; make a valid change and confirm the pending diff is shown before merge.
 > importance; this is the only pre-production gate that exists.
 
 - [ ] T079 [P] [US5] Add `values.schema.json` to every remaining chart under `charts/apps/` and `charts/bootstrap/` (FR-008)
-- [ ] T080 [US5] Extend `scripts/validate.sh` to the full gate: lint → template over all `ci/` fixtures → `helm unittest` → `kubeconform` at the recorded Kubernetes version → policy checks → `helm-docs` dirty-tree check
-- [ ] T081 [P] [US5] Supply CNPG, VSO, and Argo CD CRD schemas to `kubeconform` in `scripts/validate.sh`
-- [ ] T082 [P] [US5] Implement policy check 1 in `tests/policy/no_mutable_tags.py` (FR-021, SC-008)
-- [ ] T083 [P] [US5] Implement policy check 2 in `tests/policy/no_embedded_dependencies.py`, also rejecting a chart-local copy of a library template (FR-066, SC-033)
-- [ ] T084 [P] [US5] Implement policy check 3 in `tests/policy/no_secret_material.py` (FR-020, SC-007)
-- [ ] T085 [P] [US5] Implement policy check 4 in `tests/policy/reference_and_tiers.py` — the reference chart renders against the current `hl-common`, and each Application's sync wave matches its tier directory (FR-048, FR-060, SC-026)
-- [ ] T086 [US5] Implement `scripts/validate.sh --self-test`, injecting all six deliberate violations and asserting six failures that each name the offending file and value (quickstart step 1)
-- [ ] T087 [P] [US5] Implement policy check 5 in `tests/policy/chart_version_bumped.py` — a chart whose templates or defaults changed in the diff must have an advanced `version` (FR-018, Principle VI)
-- [ ] T088 [US5] Create `.github/workflows/ci.yaml` running the full gate on every pull request, blocking merge on failure (FR-016)
-- [ ] T089 [US5] Document the `helm diff` preview step in `docs/onboarding.md` and require its output in change descriptions (FR-015, Principle III)
+- [X] T080 [US5] Extend `scripts/validate.sh` to the full gate: lint → template over all `ci/` fixtures → `helm unittest` → `kubeconform` at the recorded Kubernetes version → policy checks → `helm-docs` dirty-tree check
+- [X] T081 [P] [US5] Supply CNPG, VSO, and Argo CD CRD schemas to `kubeconform` in `scripts/validate.sh`
+- [X] T082 [P] [US5] Implement policy check 1 in `tests/policy/no_mutable_tags.py` (FR-021, SC-008)
+- [X] T083 [P] [US5] Implement policy check 2 in `tests/policy/no_embedded_dependencies.py`, also rejecting a chart-local copy of a library template (FR-066, SC-033)
+- [X] T084 [P] [US5] Implement policy check 3 in `tests/policy/no_secret_material.py` (FR-020, SC-007)
+- [X] T085 [P] [US5] Implement policy check 4 in `tests/policy/reference_and_tiers.py` — the reference chart renders against the current `hl-common`, and each Application's sync wave matches its tier directory (FR-048, FR-060, SC-026)
+- [X] T086 [US5] Implement `scripts/validate.sh --self-test`, injecting all six deliberate violations and asserting six failures that each name the offending file and value (quickstart step 1)
+- [X] T087 [P] [US5] Implement policy check 5 in `tests/policy/chart_version_bumped.py` — a chart whose templates or defaults changed in the diff must have an advanced `version` (FR-018, Principle VI)
+- [X] T088 [US5] Create `.github/workflows/ci.yaml` running the full gate on every pull request, blocking merge on failure (FR-016)
+- [X] T089 [US5] Document the `helm diff` preview step in `docs/onboarding.md` and require its output in change descriptions (FR-015, Principle III)
 
 **Checkpoint**: No invalid change can reach the cluster.
 
@@ -238,7 +238,7 @@ time; make a valid change and confirm the pending diff is shown before merge.
 - [ ] T090 [P] Verify secret rotation end to end: rotate in Vault, confirm the consuming workload restarts unaided within `refreshAfter` (quickstart step 7, SC-016)
 - [ ] T091 [P] Verify Vault survives a node restart, and that sealing Vault leaves already-running workloads unaffected; document the unseal step in `docs/bootstrap.md` (FR-029, sealed-on-restart edge case)
 - [ ] T092 [P] Verify a rollback of `charts/infrastructure/postgres/` leaves its persistent data intact (FR-019, SC-010)
-- [ ] T093 [P] Add ingress hostname collision detection to `tests/policy/collisions.py`, alongside the US5 policy checks (hostname-collision edge case)
+- [X] T093 [P] Add ingress hostname collision detection to `tests/policy/collisions.py`, alongside the US5 policy checks (hostname-collision edge case)
 - [ ] T094 Promote the full stack to the server: run `bootstrap/install.sh` against the real k3s node, then Vault init and unseal (quickstart steps 2–4, requires T005)
 - [ ] T095 Verify readiness for real services on the server: nginx reachable over TLS, Postgres and Redis healthy, application database and role present, both credentials resolving in Vault (quickstart step 5, SC-020, SC-036)
 - [ ] T096 [P] Record the measured outcome against every success criterion in `docs/validation-results.md`, including the three timings — rebuild duration (SC-005), merge-to-cluster latency (SC-014), and stack-ready duration (SC-020)
