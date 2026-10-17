@@ -20,7 +20,8 @@ discovers the directory on its own — there is no deployment manifest to write.
 2. **Rename it.** In `charts/apps/todo/Chart.yaml` set `name: todo` (it must equal the directory,
    which becomes the namespace). Leave the two `hl-common/…` annotations alone: renaming the chart
    switches on the placeholder guard, so rendering fails — naming the parameter — until step 3 is
-   done. Delete `charts/apps/todo/README.md` or rewrite it.
+   done. Delete `charts/apps/todo/README.md.gotmpl` (it describes the reference chart); `helm-docs`
+   generates a fresh `README.md` from your values comments in step 4.
 
 3. **Set the parameters** in `charts/apps/todo/values.yaml`. Every one is marked `REQUIRED` or
    `OPTIONAL` in place, with its purpose and an example:
@@ -32,6 +33,7 @@ discovers the directory on its own — there is no deployment manifest to write.
    | `web.workload.image.registry` / `owner` | delete both to use `ghcr.io/<this repo's owner>` |
    | `web.workload.resources.limits.memory` | a memory limit; there is no default |
    | `web.service.ports` | the port(s) the container listens on |
+| `web.workload.args` / `tmpDirs` | only if your image needs flags or writable directories (the root filesystem is read-only) |
    | `web.ingress.host` | the public hostname (unique across charts; a clash fails CI) |
 
    Probes, security context, resource requests, labels and TLS are filled in for you.
@@ -41,6 +43,7 @@ discovers the directory on its own — there is no deployment manifest to write.
    ```sh
    helm dependency update charts/apps/todo
    helm template todo charts/apps/todo | less        # read what you are about to deploy
+   helm-docs                                         # generate the chart README; commit it
    scripts/validate.sh                               # the same gate CI runs
    ```
 

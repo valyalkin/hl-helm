@@ -193,13 +193,13 @@ Application. No variant to choose between.
 **Independent Test**: Someone who has not read the foundation follows the guide alone, timed, with
 every lookup outside the guide counted.
 
-- [ ] T071 [US7] Annotate every parameter in `charts/apps/nginx/values.yaml` with `# REQUIRED:` or `# OPTIONAL:`, its purpose, and an example value (FR-042)
-- [ ] T072 [US7] Give `charts/apps/nginx/values.yaml` placeholder sentinels for name, image, and hostname that fail validation if left unchanged (FR-043)
-- [ ] T073 [US7] Implement placeholder rejection in `charts/library/hl-common/templates/_validate.tpl` so an unchanged sentinel fails and names the parameter (FR-043)
-- [ ] T074 [US7] Write `docs/onboarding.md` — an ordered sequence from "I have a service" to deployed, requiring no reading of the foundation's internals, and covering secrets, image, and the Application manifest (FR-039, FR-045)
-- [ ] T075 [P] [US7] Add the extension section to `docs/onboarding.md` linking to the worked example from T036, and covering the shapes the reference chart does not show — durable storage and dependency references (FR-044)
-- [ ] T076 [P] [US7] Write `charts/apps/nginx/README.md` stating it is both a running service and the copy source, and pointing at `charts/infrastructure/postgres/` as the extension example for storage and dependency references (FR-049)
-- [ ] T077 [P] [US7] Generate chart READMEs with `helm-docs` (FR-047, SC-028)
+- [X] T071 [US7] Annotate every parameter in `charts/apps/nginx/values.yaml` with `# REQUIRED:` or `# OPTIONAL:`, its purpose, and an example value (FR-042)
+- [X] T072 [US7] Give `charts/apps/nginx/values.yaml` placeholder sentinels for name, image, and hostname that fail validation if left unchanged (FR-043)
+- [X] T073 [US7] Implement placeholder rejection in `charts/library/hl-common/templates/_validate.tpl` so an unchanged sentinel fails and names the parameter (FR-043)
+- [X] T074 [US7] Write `docs/onboarding.md` — an ordered sequence from "I have a service" to deployed, requiring no reading of the foundation's internals, and covering secrets, image, and the Application manifest (FR-039, FR-045)
+- [X] T075 [P] [US7] Add the extension section to `docs/onboarding.md` linking to the worked example from T036, and covering the shapes the reference chart does not show — durable storage and dependency references (FR-044)
+- [X] T076 [P] [US7] Write `charts/apps/nginx/README.md` stating it is both a running service and the copy source, and pointing at `charts/infrastructure/postgres/` as the extension example for storage and dependency references (FR-049)
+- [X] T077 [P] [US7] Generate chart READMEs with `helm-docs` (FR-047, SC-028)
 - [ ] T078 [US7] Time an onboarding run against `docs/onboarding.md` alone, recording elapsed time, parameters changed, and lookups outside the guide in `docs/validation-results.md` (SC-023, SC-024, SC-025)
 
 **Checkpoint**: A new service is a copy, a few edits, and one manifest.
