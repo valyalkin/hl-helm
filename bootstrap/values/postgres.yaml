@@ -1,0 +1,4 @@
+# One database and role per application. `nginx` demonstrates the shape and proves the
+# credential path end to end; replace or extend it as real applications arrive.
+databases:
+  - name: nginx

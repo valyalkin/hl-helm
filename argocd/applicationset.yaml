@@ -1,0 +1,36 @@
+# One Argo CD Application per application chart, discovered by directory (FR-045).
+#   charts/apps/<application>/  ->  Application and namespace named <application>
+# Argo CD manages charts/apps/ only; bootstrap and infrastructure are installed by
+# bootstrap/install.sh, so a merge can never restart a data service (research R-006).
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/valyalkin/hl-helm.git
+        revision: main
+        directories:
+          - path: charts/apps/*
+  template:
+    metadata:
+      name: '{{ .path.basename }}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/valyalkin/hl-helm.git
+        targetRevision: main
+        path: '{{ .path.path }}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ .path.basename }}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=false   # the application's own chart renders its Namespace

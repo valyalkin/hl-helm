@@ -1,0 +1,31 @@
+# Pinned install order for the bootstrap and infrastructure tiers (FR-055, FR-060).
+# bootstrap/install.sh walks this list top to bottom; each entry is `helm upgrade --install`ed
+# from the committed chart, waited on, and only then is the next one started. Argo CD comes last
+# and manages charts/apps/* only.
+#
+# Fields: name (release), chart (path), namespace, values (optional file), after (optional hook).
+install:
+  - name: vault
+    chart: charts/bootstrap/vault
+    namespace: vault
+    after: vault-init          # initialise, unseal and configure Vault (needs the keys file)
+  - name: vault-secrets-operator
+    chart: charts/infrastructure/vault-secrets-operator
+    namespace: vault-secrets-operator
+  - name: cloudnative-pg
+    chart: charts/infrastructure/cloudnative-pg
+    namespace: cnpg-system
+  - name: postgres
+    chart: charts/infrastructure/postgres
+    namespace: postgres
+    values: bootstrap/values/postgres.yaml
+  - name: redis
+    chart: charts/infrastructure/redis
+    namespace: redis
+
+argocd:
+  name: argocd
+  chart: charts/bootstrap/argocd
+  namespace: argocd
+  values: bootstrap/argocd-values.yaml
+  applicationset: argocd/applicationset.yaml

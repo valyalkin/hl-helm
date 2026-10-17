@@ -217,7 +217,7 @@ time; make a valid change and confirm the pending diff is shown before merge.
 > **Recommended to pull forward** — see Implementation Strategy. P3 reflects sequence, not
 > importance; this is the only pre-production gate that exists.
 
-- [ ] T079 [P] [US5] Add `values.schema.json` to every remaining chart under `charts/apps/` and `charts/bootstrap/` (FR-008)
+- [X] T079 [P] [US5] Add `values.schema.json` to every remaining chart under `charts/apps/` and `charts/bootstrap/` (FR-008)
 - [X] T080 [US5] Extend `scripts/validate.sh` to the full gate: lint → template over all `ci/` fixtures → `helm unittest` → `kubeconform` at the recorded Kubernetes version → policy checks → `helm-docs` dirty-tree check
 - [X] T081 [P] [US5] Supply CNPG, VSO, and Argo CD CRD schemas to `kubeconform` in `scripts/validate.sh`
 - [X] T082 [P] [US5] Implement policy check 1 in `tests/policy/no_mutable_tags.py` (FR-021, SC-008)
