@@ -1,0 +1,5 @@
+apiVersion: v2
+name: hl-common
+description: Shared conventions for every hl-helm chart — naming, labels, probes, limits, TLS ingress, images, config.
+type: library
+version: 0.1.0

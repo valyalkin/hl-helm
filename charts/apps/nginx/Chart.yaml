@@ -1,0 +1,10 @@
+apiVersion: v2
+name: nginx
+description: Reference application chart — a running nginx service and the directory operators copy to onboard a new application.
+type: application
+version: 0.1.0
+appVersion: "alpine"
+dependencies:
+  - name: hl-common
+    version: "~0.1.0"
+    repository: "file://../../library/hl-common"

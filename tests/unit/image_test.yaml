@@ -1,0 +1,37 @@
+suite: image resolution
+templates: [templates/all.yaml]
+release: {name: demo}
+tests:
+  - it: defaults to ghcr.io/<owner>
+    documentSelector: {path: kind, value: Deployment}
+    asserts:
+      - equal: {path: 'spec.template.spec.containers[0].image', value: "ghcr.io/valyalkin/app:1.2.3"}
+  - it: prefers digest and keeps the tag for readability
+    set:
+      services.web.workload.image.digest: sha256:abc123
+    documentSelector: {path: kind, value: Deployment}
+    asserts:
+      - equal: {path: 'spec.template.spec.containers[0].image', value: "ghcr.io/valyalkin/app:1.2.3@sha256:abc123"}
+  - it: honours a registry and owner override for upstream images
+    set:
+      services.web.workload.image: {registry: docker.io, owner: library, name: redis, tag: "8-alpine"}
+    documentSelector: {path: kind, value: Deployment}
+    asserts:
+      - equal: {path: 'spec.template.spec.containers[0].image', value: "docker.io/library/redis:8-alpine"}
+  - it: rejects the latest tag
+    set:
+      services.web.workload.image.tag: latest
+    asserts:
+      - failedTemplate: {errorPattern: "mutable tag \"latest\""}
+  - it: rejects a tag with no version
+    set:
+      services.web.workload.image.tag: alpine
+    asserts:
+      - failedTemplate: {errorPattern: "mutable tag \"alpine\""}
+  - it: accepts a non-version tag when a digest pins it
+    set:
+      services.web.workload.image.tag: alpine
+      services.web.workload.image.digest: sha256:abc123
+    documentSelector: {path: kind, value: Deployment}
+    asserts:
+      - matchRegex: {path: 'spec.template.spec.containers[0].image', pattern: "@sha256:abc123$"}

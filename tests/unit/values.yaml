@@ -1,0 +1,8 @@
+# Each key under `services` is rendered through hl-common.all. Suites override these.
+services:
+  web:
+    workload:
+      image: {name: app, tag: "1.2.3"}
+      resources: {limits: {memory: 64Mi}}
+    service:
+      ports: [{name: http, port: 80}]

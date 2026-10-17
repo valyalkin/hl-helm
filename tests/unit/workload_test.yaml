@@ -1,0 +1,45 @@
+suite: workload defaults
+templates: [templates/all.yaml]
+release: {name: demo}
+tests:
+  - it: emits probes, requests, memory limit and hardened security context unasked
+    documentSelector: {path: kind, value: Deployment}
+    asserts:
+      - equal: {path: 'spec.template.spec.containers[0].livenessProbe.tcpSocket.port', value: http}
+      - equal: {path: 'spec.template.spec.containers[0].readinessProbe.tcpSocket.port', value: http}
+      - equal: {path: 'spec.template.spec.containers[0].resources.limits.memory', value: 64Mi}
+      - equal: {path: 'spec.template.spec.containers[0].resources.requests.memory', value: 64Mi}
+      - equal: {path: 'spec.template.spec.containers[0].resources.requests.cpu', value: 10m}
+      - isNull: {path: 'spec.template.spec.containers[0].resources.limits.cpu'}
+      - equal: {path: spec.template.spec.automountServiceAccountToken, value: false}
+      - equal: {path: spec.template.spec.securityContext.runAsNonRoot, value: true}
+      - equal: {path: 'spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem', value: true}
+      - equal: {path: 'spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation', value: false}
+  - it: uses a chart-supplied probe verbatim
+    set:
+      services.web.workload.probes.liveness: {httpGet: {path: /healthz, port: http}}
+    documentSelector: {path: kind, value: Deployment}
+    asserts:
+      - equal: {path: 'spec.template.spec.containers[0].livenessProbe.httpGet.path', value: /healthz}
+  - it: emits a startup probe only when supplied
+    set:
+      services.web.workload.probes.startup: {tcpSocket: {port: http}}
+    documentSelector: {path: kind, value: Deployment}
+    asserts:
+      - exists: {path: 'spec.template.spec.containers[0].startupProbe'}
+  - it: honours replicas 0
+    set:
+      services.web.workload.replicas: 0
+    documentSelector: {path: kind, value: Deployment}
+    asserts:
+      - equal: {path: spec.replicas, value: 0}
+  - it: renders a StatefulSet when asked
+    set:
+      services.web.workload.kind: StatefulSet
+    documentSelector: {path: kind, value: StatefulSet}
+    asserts:
+      - equal: {path: spec.serviceName, value: demo-web}
+  - it: renders a Service from declared ports
+    documentSelector: {path: kind, value: Service}
+    asserts:
+      - equal: {path: 'spec.ports[0].port', value: 80}

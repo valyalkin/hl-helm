@@ -34,10 +34,10 @@ There is no `scaffolds/` directory — `charts/apps/nginx/` is the reference cha
 
 **Purpose**: Workstation tooling and repository skeleton. Nothing here needs cluster access.
 
-- [ ] T001 [P] Install layer-0 tooling used by `scripts/validate.sh`: `brew install helm kubeconform helm-docs k3d` and `helm plugin install https://github.com/helm-unittest/helm-unittest`
-- [ ] T002 [P] Create root `.gitignore` covering `*.tgz`, `charts/**/charts/`, `.DS_Store`, and local kubeconfigs
-- [ ] T003 [P] Create root `README.md` with repository purpose, tier model, and a placeholder for the k3s version recorded in T005
-- [ ] T004 Create the directory skeleton from plan.md: `charts/{library,bootstrap,infrastructure,apps}/`, `argocd/`, `bootstrap/`, `docs/`, `tests/{unit,policy}/`, `scripts/`
+- [X] T001 [P] Install layer-0 tooling used by `scripts/validate.sh`: `brew install helm kubeconform helm-docs k3d` and `helm plugin install https://github.com/helm-unittest/helm-unittest`
+- [X] T002 [P] Create root `.gitignore` covering `*.tgz`, `charts/**/charts/`, `.DS_Store`, and local kubeconfigs
+- [X] T003 [P] Create root `README.md` with repository purpose, tier model, and a placeholder for the k3s version recorded in T005
+- [X] T004 Create the directory skeleton from plan.md: `charts/{library,bootstrap,infrastructure,apps}/`, `argocd/`, `bootstrap/`, `docs/`, `tests/{unit,policy}/`, `scripts/`
 - [ ] T005 Record the cluster baseline in `README.md` — k3s version, storage classes, Traefik presence — per quickstart step 0 (**requires kubeconfig; blocks T042 if below Kubernetes 1.31**)
 - [ ] T006 [P] Create a disposable local cluster for iteration per quickstart layer 1: `k3d cluster create homelab-test --servers 1`
 - [ ] T007 Create the public GitHub remote and push `main`, so Argo CD has a repository to read; record its URL in `argocd/applicationset.yaml` (research R-007)
@@ -51,15 +51,15 @@ develop against.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T008 Create `charts/library/hl-common/Chart.yaml` with `type: library`, name `hl-common`, version `0.1.0`
-- [ ] T009 Create `charts/library/hl-common/values.yaml` with the documented default surface from contracts/values-contract.md
-- [ ] T010 [P] Implement `charts/library/hl-common/templates/_naming.tpl` — `hl-common.name`, `hl-common.fullname` (truncated to 53 chars), `hl-common.labels`, `hl-common.selectorLabels`
-- [ ] T011 [P] Implement `charts/library/hl-common/templates/_validate.tpl` — `hl-common.fail` and required-value assertions that name the offending value path
-- [ ] T012 [P] Implement `charts/library/hl-common/templates/_image.tpl` — `hl-common.image` applying the `ghcr.io/<owner>` default, preferring digest over tag, failing on a mutable tag (FR-021, FR-023, FR-025)
-- [ ] T013 Create `scripts/validate.sh` with a minimal development gate: `helm lint` plus `helm template` over every chart (expanded to the full gate in US5)
-- [ ] T014 Create the `helm unittest` harness at `tests/unit/` with a passing smoke suite for `hl-common.name`
-- [ ] T015 [P] Write unit tests for naming, labels, and truncation in `tests/unit/naming_test.yaml`
-- [ ] T016 [P] Write unit tests for image resolution and mutable-tag rejection in `tests/unit/image_test.yaml`
+- [X] T008 Create `charts/library/hl-common/Chart.yaml` with `type: library`, name `hl-common`, version `0.1.0`
+- [X] T009 Create `charts/library/hl-common/values.yaml` with the documented default surface from contracts/values-contract.md
+- [X] T010 [P] Implement `charts/library/hl-common/templates/_naming.tpl` — `hl-common.name`, `hl-common.fullname` (truncated to 53 chars), `hl-common.labels`, `hl-common.selectorLabels`
+- [X] T011 [P] Implement `charts/library/hl-common/templates/_validate.tpl` — `hl-common.fail` and required-value assertions that name the offending value path
+- [X] T012 [P] Implement `charts/library/hl-common/templates/_image.tpl` — `hl-common.image` applying the `ghcr.io/<owner>` default, preferring digest over tag, failing on a mutable tag (FR-021, FR-023, FR-025)
+- [X] T013 Create `scripts/validate.sh` with a minimal development gate: `helm lint` plus `helm template` over every chart (expanded to the full gate in US5)
+- [X] T014 Create the `helm unittest` harness at `tests/unit/` with a passing smoke suite for `hl-common.name`
+- [X] T015 [P] Write unit tests for naming, labels, and truncation in `tests/unit/naming_test.yaml`
+- [X] T016 [P] Write unit tests for image resolution and mutable-tag rejection in `tests/unit/image_test.yaml`
 
 **Checkpoint**: `scripts/validate.sh` passes and `helm unittest charts/library/hl-common` is green.
 
@@ -73,20 +73,20 @@ of resources with probes, limits, and TLS ingress from safe defaults.
 **Independent Test**: Render the first consuming chart from a minimal values file and confirm the
 output is a complete, valid set of cluster resources that deploys successfully.
 
-- [ ] T017 [P] [US1] Implement `charts/library/hl-common/templates/_resources.tpl` — requests always emitted, `limits.memory` mandatory with render failure when unset, `limits.cpu` deliberately unset
-- [ ] T018 [P] [US1] Implement `charts/library/hl-common/templates/_probes.tpl` — liveness and readiness required, optional startup probe
-- [ ] T019 [US1] Implement `charts/library/hl-common/templates/_workload.tpl` — Deployment or StatefulSet per `workload.kind`, with `automountServiceAccountToken: false` and a non-root, read-only-root-filesystem security context by default
-- [ ] T020 [P] [US1] Implement `charts/library/hl-common/templates/_service.tpl` from `service.ports`
-- [ ] T021 [P] [US1] Implement `charts/library/hl-common/templates/_ingress.tpl` — TLS stanza always emitted with a configurable `secretName` (research R-008)
-- [ ] T022 [P] [US1] Implement `charts/library/hl-common/templates/_serviceaccount.tpl`
-- [ ] T023 [P] [US1] Implement `charts/library/hl-common/templates/_config.tpl` — ConfigMap from `config.values` and verbatim `config.files`, content hashed onto the pod template, `restartOnChange` defaulting to true (FR-036, FR-037, FR-038, research R-011)
-- [ ] T024 [US1] Implement the `hl-common.all` entry point in `charts/library/hl-common/templates/_all.tpl`, composing every resource the values describe
-- [ ] T025 [US1] Create `charts/library/hl-common/values.schema.json` covering the shared values surface per contracts/values-contract.md
-- [ ] T026 [US1] Create the reference chart `charts/apps/nginx/` — one chart deploying one application: `Chart.yaml` depending on `hl-common`, a `values.yaml` of under 20 lines with one block per service using a digest-pinned `nginx:alpine`, and `templates/web.yaml` as a single call to `hl-common.all`
-- [ ] T027 [P] [US1] Create `charts/apps/nginx/ci/default-values.yaml` as the render test fixture
-- [ ] T028 [P] [US1] Write unit tests in `tests/unit/workload_test.yaml` asserting probes, resource limits, and security context appear without the chart requesting them
-- [ ] T029 [P] [US1] Write unit tests in `tests/unit/ingress_test.yaml` asserting the TLS stanza is always present
-- [ ] T030 [US1] Write a unit test in `tests/unit/required_values_test.yaml` asserting that an omitted required value fails rendering and names the value (US1 acceptance scenario 2)
+- [X] T017 [P] [US1] Implement `charts/library/hl-common/templates/_resources.tpl` — requests always emitted, `limits.memory` mandatory with render failure when unset, `limits.cpu` deliberately unset
+- [X] T018 [P] [US1] Implement `charts/library/hl-common/templates/_probes.tpl` — liveness and readiness required, optional startup probe
+- [X] T019 [US1] Implement `charts/library/hl-common/templates/_workload.tpl` — Deployment or StatefulSet per `workload.kind`, with `automountServiceAccountToken: false` and a non-root, read-only-root-filesystem security context by default
+- [X] T020 [P] [US1] Implement `charts/library/hl-common/templates/_service.tpl` from `service.ports`
+- [X] T021 [P] [US1] Implement `charts/library/hl-common/templates/_ingress.tpl` — TLS stanza always emitted with a configurable `secretName` (research R-008)
+- [X] T022 [P] [US1] Implement `charts/library/hl-common/templates/_serviceaccount.tpl`
+- [X] T023 [P] [US1] Implement `charts/library/hl-common/templates/_config.tpl` — ConfigMap from `config.values` and verbatim `config.files`, content hashed onto the pod template, `restartOnChange` defaulting to true (FR-036, FR-037, FR-038, research R-011)
+- [X] T024 [US1] Implement the `hl-common.all` entry point in `charts/library/hl-common/templates/_all.tpl`, composing every resource the values describe
+- [X] T025 [US1] Create `charts/library/hl-common/values.schema.json` covering the shared values surface per contracts/values-contract.md
+- [X] T026 [US1] Create the reference chart `charts/apps/nginx/` — one chart deploying one application: `Chart.yaml` depending on `hl-common`, a `values.yaml` of under 20 lines with one block per service using a digest-pinned `nginx:alpine`, and `templates/web.yaml` as a single call to `hl-common.all`
+- [X] T027 [P] [US1] Create `charts/apps/nginx/ci/default-values.yaml` as the render test fixture
+- [X] T028 [P] [US1] Write unit tests in `tests/unit/workload_test.yaml` asserting probes, resource limits, and security context appear without the chart requesting them
+- [X] T029 [P] [US1] Write unit tests in `tests/unit/ingress_test.yaml` asserting the TLS stanza is always present
+- [X] T030 [US1] Write a unit test in `tests/unit/required_values_test.yaml` asserting that an omitted required value fails rendering and names the value (US1 acceptance scenario 2)
 - [ ] T031 [US1] Verify idempotence: install `charts/apps/nginx` to the k3d cluster, re-apply unchanged, confirm no diff (US1 acceptance scenario 4, FR-017)
 
 **Checkpoint**: A new application deploys from image, port, and hostname alone. MVP reached.

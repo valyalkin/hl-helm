@@ -1,0 +1,16 @@
+web:
+  workload:
+    image:
+      registry: docker.io
+      owner: nginxinc
+      name: nginx-unprivileged
+      tag: alpine
+      digest: sha256:378d0c32f6562f7fd9629170797f57d2b953aa09be983b3daaf4809bb039ca00
+    resources:
+      limits: {memory: 64Mi}
+    tmpDirs: [/tmp]
+  service:
+    ports: [{name: http, port: 80, targetPort: 8080}]
+  ingress:
+    enabled: true
+    host: nginx.home.example

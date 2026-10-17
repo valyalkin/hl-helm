@@ -1,0 +1,24 @@
+# hl-common is a library chart: it renders nothing on its own and Helm does not merge this file
+# into a consuming chart's values. The authoritative defaults live in templates/_defaults.tpl;
+# this file documents the per-service values surface (contracts/values-contract.md).
+#
+# A consuming chart holds one block per service, each passed to `hl-common.all`:
+#
+# <service>:
+#   workload:
+#     kind: Deployment            # Deployment | StatefulSet
+#     replicas: 1
+#     image: {registry: ghcr.io, owner: <repo owner>, name: <required>, tag: <required unless digest>, digest: sha256:..., pullSecret: ""}
+#     resources: {requests: {cpu: 10m, memory: <defaults to limits.memory>}, limits: {memory: <REQUIRED>}}
+#     probes: {liveness: <defaults to tcpSocket on first port>, readiness: <same>, startup: <unset>}
+#     tmpDirs: []                 # emptyDir mounts for a read-only root filesystem
+#     automountServiceAccountToken: false
+#   service:
+#     ports: [{name: http, port: 80, targetPort: 8080, protocol: TCP}]
+#   ingress: {enabled: false, host: "", path: /, port: <first port>, className: traefik, tls: {secretName: ""}}
+#   storage: {enabled: false, size: "", storageClassName: "", retain: true, mountPath: ""}
+#   config: {values: {}, files: [], mountPath: "", restartOnChange: true}
+#   secrets: {}
+#   dependencies: {}
+#   overrides: {}                 # section name -> true; library calls <chart>.override.<section>
+{}
