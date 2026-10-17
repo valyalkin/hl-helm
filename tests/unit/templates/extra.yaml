@@ -1,0 +1,19 @@
+{{- /* Test-only: chart-local custom resources exercising the extension mechanisms. */}}
+{{- if .Values.extension.cronjob }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "hl-common.name" (dict "root" $ "name" "report") }}
+  labels:
+    {{- include "hl-common.labels" (dict "root" $ "name" "report") | nindent 4 }}
+spec:
+  schedule: "0 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          {{- $v := fromYaml (include "hl-common.build" (dict "name" "report" "values" .Values.extension.cronjob)) }}
+          {{- include "hl-common.podSpec" (dict "root" $ "name" "report" "v" $v) | nindent 10 }}
+{{- end }}

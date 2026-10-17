@@ -6,3 +6,6 @@ services:
       resources: {limits: {memory: 64Mi}}
     service:
       ports: [{name: http, port: 80}]
+
+extension:
+  cronjob: null

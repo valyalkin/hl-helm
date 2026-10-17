@@ -1,0 +1,18 @@
+suite: convention propagation
+templates: [templates/all.yaml]
+release: {name: demo}
+tests:
+  - it: every service of every chart gets the same guarantees with no per-chart edits
+    set:
+      services.api:
+        workload: {image: {name: api, tag: "3.1.0"}, resources: {limits: {memory: 128Mi}}}
+        service: {ports: [{name: http, port: 8080}]}
+    asserts:
+      - equal: {path: spec.template.spec.automountServiceAccountToken, value: false}
+        documentIndex: 0
+      - equal: {path: spec.template.spec.securityContext.runAsNonRoot, value: true}
+        documentIndex: 0
+      - equal: {path: spec.template.spec.securityContext.runAsNonRoot, value: true}
+        documentIndex: 2
+      - equal: {path: 'spec.template.spec.containers[0].resources.requests.cpu', value: 10m}
+        documentIndex: 2

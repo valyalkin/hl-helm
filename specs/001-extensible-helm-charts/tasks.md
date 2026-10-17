@@ -39,7 +39,7 @@ There is no `scaffolds/` directory — `charts/apps/nginx/` is the reference cha
 - [X] T003 [P] Create root `README.md` with repository purpose, tier model, and a placeholder for the k3s version recorded in T005
 - [X] T004 Create the directory skeleton from plan.md: `charts/{library,bootstrap,infrastructure,apps}/`, `argocd/`, `bootstrap/`, `docs/`, `tests/{unit,policy}/`, `scripts/`
 - [ ] T005 Record the cluster baseline in `README.md` — k3s version, storage classes, Traefik presence — per quickstart step 0 (**requires kubeconfig; blocks T042 if below Kubernetes 1.31**)
-- [ ] T006 [P] Create a disposable local cluster for iteration per quickstart layer 1: `k3d cluster create homelab-test --servers 1`
+- [X] T006 [P] Create a disposable local cluster for iteration per quickstart layer 1: `k3d cluster create homelab-test --servers 1`
 - [ ] T007 Create the public GitHub remote and push `main`, so Argo CD has a repository to read; record its URL in `argocd/applicationset.yaml` (research R-007)
 
 ---
@@ -87,7 +87,7 @@ output is a complete, valid set of cluster resources that deploys successfully.
 - [X] T028 [P] [US1] Write unit tests in `tests/unit/workload_test.yaml` asserting probes, resource limits, and security context appear without the chart requesting them
 - [X] T029 [P] [US1] Write unit tests in `tests/unit/ingress_test.yaml` asserting the TLS stanza is always present
 - [X] T030 [US1] Write a unit test in `tests/unit/required_values_test.yaml` asserting that an omitted required value fails rendering and names the value (US1 acceptance scenario 2)
-- [ ] T031 [US1] Verify idempotence: install `charts/apps/nginx` to the k3d cluster, re-apply unchanged, confirm no diff (US1 acceptance scenario 4, FR-017)
+- [X] T031 [US1] Verify idempotence: install `charts/apps/nginx` to the k3d cluster, re-apply unchanged, confirm no diff (US1 acceptance scenario 4, FR-017)
 
 **Checkpoint**: A new application deploys from image, port, and hostname alone. MVP reached.
 
@@ -102,12 +102,12 @@ boilerplate copied.
 carries it alongside foundation resources with matching naming and labels, and confirm a
 convention change still reaches that chart.
 
-- [ ] T032 [P] [US2] Implement `hl-common.podSpec` in `charts/library/hl-common/templates/_podspec.tpl`, exposing a complete pod spec for custom controllers such as CronJob
-- [ ] T033 [US2] Implement the section-override mechanism in `charts/library/hl-common/templates/_all.tpl` — call `<chart>.override.<section>` when defined, otherwise the library's own (contracts/library-chart-interface.md)
-- [ ] T034 [P] [US2] Write a unit test in `tests/unit/extension_test.yaml` proving a chart-local custom resource carries `hl-common.labels` and release-scoped naming
-- [ ] T035 [P] [US2] Write a unit test in `tests/unit/convention_propagation_test.yaml` proving a change to a library default appears in every consuming chart without per-chart edits (FR-005, SC-027)
-- [ ] T036 [P] [US2] Write a unit test in `tests/unit/override_test.yaml` proving a declared section override replaces the library's rendering
-- [ ] T037 [US2] Document the three sanctioned extension mechanisms in `charts/library/hl-common/README.md`, with a worked example for each
+- [X] T032 [P] [US2] Implement `hl-common.podSpec` in `charts/library/hl-common/templates/_podspec.tpl`, exposing a complete pod spec for custom controllers such as CronJob
+- [X] T033 [US2] Implement the section-override mechanism in `charts/library/hl-common/templates/_all.tpl` — call `<chart>.override.<section>` when defined, otherwise the library's own (contracts/library-chart-interface.md)
+- [X] T034 [P] [US2] Write a unit test in `tests/unit/extension_test.yaml` proving a chart-local custom resource carries `hl-common.labels` and release-scoped naming
+- [X] T035 [P] [US2] Write a unit test in `tests/unit/convention_propagation_test.yaml` proving a change to a library default appears in every consuming chart without per-chart edits (FR-005, SC-027)
+- [X] T036 [P] [US2] Write a unit test in `tests/unit/override_test.yaml` proving a declared section override replaces the library's rendering
+- [X] T037 [US2] Document the three sanctioned extension mechanisms in `charts/library/hl-common/README.md`, with a worked example for each
 
 **Checkpoint**: A workload needing a sidecar, a CronJob, or a custom resource fits without a fork.
 
