@@ -43,24 +43,22 @@ before any chart is written.
 Proves Principle III's gate and SC-006. Requires no cluster at all.
 
 ```bash
-make validate     # or: scripts/validate.sh
+scripts/validate.sh
 ```
 
-Which runs, in order: `helm lint` on every chart → `helm template` against each chart's `ci/`
-values files → `helm unittest` on `hl-common` → `kubeconform` on all rendered output → the four
-policy checks → `helm-docs` with a dirty-tree check.
+Runs, in order: `helm lint` on every chart → `helm template` against each chart's `ci/` values →
+`kubeconform` (with the CRD catalog) → `helm unittest` → the policy checks in `tests/policy/` →
+the `helm-docs` staleness check. **Expected**: `GATE PASS`.
 
-**Expected**: all green, exit 0. **Negative check** — the gate is only worth something if it
-fails when it should:
+The gate is only worth something if it fails when it should:
 
 ```bash
 scripts/validate.sh --self-test
 ```
 
-Deliberately injects each of: a mutable image tag, a missing `limits.memory`, an unchanged
-unchanged placeholder, a duplicate ingress host, a secret-shaped literal, and an application chart
-depending on an infrastructure chart. **Expected**: six failures, each naming the offending file
-and value (SC-006, SC-007, SC-008, SC-033).
+Injects eight violations (mutable tag, embedded dependency, secret literal, bootstrap secret
+reference, missing version bump, missing memory limit, unchanged placeholder, duplicate ingress
+host). **Expected**: `8 of 8 violations caught`, each naming the file and value.
 
 ---
 
@@ -69,111 +67,86 @@ and value (SC-006, SC-007, SC-008, SC-033).
 Proves SC-018 and SC-030 — exactly one manual command.
 
 ```bash
-./bootstrap/install.sh --repo-credential <token-or-key-path>
+bootstrap/install.sh [--context <ctx>] [--keys-file <path>] [--repo-credential <file>]
 ```
 
-The repository is public, so Argo CD can read it anonymously and the credential is optional. Pass
-it to avoid anonymous GitHub rate limits during a cold rebuild, and whenever Argo CD needs write
-access. It is written straight into the Argo CD repository Secret and persisted nowhere else —
-never committed, never read from Vault (research R-007).
-
-**Expected**: the infrastructure tiers are installed in order, then Argo CD, then
-`argocd/applicationset.yaml`, which discovers every application chart under `charts/apps/*`.
-Nothing else is run by hand.
+**Expected**: Vault, Vault Secrets Operator, CloudNativePG, Postgres and Redis installed in that
+order (each waited on), Vault initialised, unsealed and configured by the script, then Argo CD and
+the ApplicationSet, which discovers `charts/apps/*`. The repository is public, so the credential is
+optional (research R-007).
 
 ```bash
-kubectl -n argocd get applications -w
+kubectl -n argocd get applications
 ```
 
-**Expected**: applications appear and sync in wave order — Argo CD, Vault, then VSO and the CNPG
-operator, then Postgres and Redis, then the nginx reference service.
+**Expected**: `nginx` `Synced` and `Healthy`.
 
----
+## Step 3 — Keep Vault's unseal material
 
-## Step 3 — Initialise and unseal Vault
+`bootstrap/vault-init.sh` (run by `install.sh`) writes the unseal key and root token to
+`~/.hl-helm/vault-init.json`, outside the repository. **Copy it to a password manager now.** After
+a node restart Vault is sealed; run `bootstrap/vault-init.sh` again to unseal it (`docs/bootstrap.md`).
 
-The one place a human holds material that is never committed (FR-059).
+The bootstrap tier came up before Vault held any data, confirming nothing in it depends on Vault
+(FR-056).
+
+## Step 4 — Confirm the infrastructure report
 
 ```bash
-kubectl -n vault exec -it vault-0 -- vault operator init -key-shares=1 -key-threshold=1
-kubectl -n vault exec -it vault-0 -- vault operator unseal <key>
+scripts/infra-status.sh [--context <ctx>]
 ```
 
-**Expected**: Vault unsealed. **Store the unseal key and root token outside the cluster now** — a
-password manager, not this repository. Then seed the database and cache secrets and the Kubernetes auth role
-per `docs/bootstrap.md`.
-
-**Verify the tier rule** (FR-056): the bootstrap tier came up *before* this step, confirming
-nothing in it depended on Vault.
-
----
-
-## Step 4 — Confirm Argo CD adopted its own release
-
-Closes the risk recorded in research R-007.
-
-```bash
-kubectl -n argocd get application argocd -o jsonpath='{.status.sync.status}'
-```
-
-**Expected**: `Synced` with an empty diff. A non-empty diff means the imperative install and the
-declarative Application disagree — reconcile the values file before going further, or every later
-sync carries the discrepancy.
-
----
+**Expected**: every release `deployed`, repository and deployed versions equal, drift `none`.
+(Argo CD does not manage these releases, so there is no Argo CD application to check.)
 
 ## Step 5 — Prove the stack is ready for real services
 
 Proves SC-020 and SC-036.
 
 ```bash
-curl -kI https://<nginx-host>/                                   # reference service reachable
-kubectl -n database get cluster postgres -o jsonpath='{.status.readyInstances}'
-kubectl -n cache get pods -l app=redis
+curl -kI https://<nginx-host>/                                   # reference service over TLS
+kubectl -n postgres get cluster postgres                         # Cluster in healthy state
+kubectl -n postgres get database                                 # the nginx database: applied true
+kubectl -n redis get pods
+kubectl -n vault exec vault-0 -- env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<root> \
+  vault kv get kv/apps/nginx/postgres                            # the credential exists
+kubectl -n vault exec vault-0 -- env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<root> \
+  vault kv get kv/infra/redis
 ```
 
-Then confirm each dependency is genuinely consumable, which is the point of this delivery:
-
-```bash
-# The application database and role exist, and the credential is in Vault.
-kubectl -n database exec -it postgres-1 -- psql -U postgres -c '\du'
-kubectl -n vault exec -it vault-0 -- vault kv get secret/database/app
-```
-
-**Expected**: nginx serves over TLS; Postgres reports its instance ready with the application
-database and role present; Redis responds; and both credentials resolve in Vault. At that point a
-real service can be added by copying `charts/apps/nginx/` and pointing it at these addresses —
-with no change to any infrastructure chart.
-
----
+**Expected**: nginx serves over TLS; Postgres is healthy with the `nginx` database and role; Redis
+responds to an authenticated `PING`; both credentials resolve in Vault. A real service is then
+added by copying `charts/apps/nginx/` (`docs/onboarding.md`) with no change to any infrastructure
+chart other than a line in `bootstrap/values/postgres.yaml` for its database.
 
 ## Step 6 — Prove decoupling
 
-Proves SC-031, SC-032, SC-034 — the requirements most easily lost in implementation.
+Proves SC-031, SC-032, SC-034.
 
 ```bash
 # Applications come and go; dependencies do not notice.
 for i in $(seq 1 10); do
   kubectl -n nginx delete deployment nginx-web
-  argocd app sync nginx --timeout 120
+  # Argo CD (selfHeal) recreates it; wait for it
+  kubectl -n nginx rollout status deploy/nginx-web --timeout=120s
 done
-kubectl -n database get cluster postgres -o jsonpath='{.status.readyInstances}'
+kubectl -n postgres get pod postgres-1 -o jsonpath='{.metadata.uid} {.status.containerStatuses[0].restartCount}'
 ```
 
-**Expected**: Postgres reports ready throughout, its restart count unchanged, its data intact
-(SC-031).
+**Expected**: the Postgres pod UID and restart count are unchanged and its data intact (SC-031).
 
 ```bash
-# A dependency upgrade leaves applications alone.
-# Bump the Redis image in charts/infrastructure/redis, merge, then:
+# A dependency upgrade leaves applications alone: bump the Redis image, then
+bootstrap/install.sh --only redis --diff   # review
+bootstrap/install.sh --only redis
 kubectl -n nginx get pods -o jsonpath='{.items[*].metadata.creationTimestamp}'
 ```
 
-**Expected**: unchanged timestamps — no application was redeployed (SC-032).
+**Expected**: unchanged timestamps (SC-032).
 
 ```bash
 # Infrastructure stands alone.
-helm template charts/infrastructure/postgres | kubectl apply --dry-run=server -f -
+helm template charts/infrastructure/postgres -f charts/infrastructure/postgres/ci/default-values.yaml
 ```
 
 **Expected**: valid with no application present (SC-034).
@@ -182,17 +155,16 @@ helm template charts/infrastructure/postgres | kubectl apply --dry-run=server -f
 
 ## Step 7 — Prove secret rotation
 
-Proves SC-016 and FR-028.
+Proves SC-016 and FR-028. Redis consumes `kv/infra/redis`:
 
 ```bash
-# Rotate in Vault, then watch the consumer.
-kubectl -n nginx get pods -w
+kubectl -n vault exec vault-0 -- env VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<root> \
+  vault kv put -mount=kv infra/redis password=<new>
+kubectl -n redis get pods -w
 ```
 
-**Expected**: the `VaultStaticSecret` refreshes within `refreshAfter`, and the consuming
-workload is restarted automatically by VSO's rollout target. No chart changed.
-
----
+**Expected**: within `refreshAfter` (default 1h) the Secret updates and VSO restarts Redis. No
+chart changed.
 
 ## Step 8 — Prove drift correction
 
@@ -204,28 +176,14 @@ sleep 60
 kubectl -n nginx get deployment nginx-web -o jsonpath='{.spec.replicas}'
 ```
 
-**Expected**: back to the repository's value, with the drift reported in Argo CD.
-
----
+**Expected**: back to the repository's value.
 
 ## Step 9 — Prove onboarding
 
-Proves SC-023, SC-024, SC-027 — the hardest to fake, because the measurement is a person.
+Proves SC-023, SC-024, SC-027 — the hardest to fake, because the measurement is a person. Follow
+`docs/onboarding.md` to add a service, timing it and counting every lookup beyond the guide.
 
-Follow `docs/onboarding.md` to add a new service, timing it and counting every time you look
-beyond the guide.
-
-**Expected**: under 15 minutes (SC-023), no more than 10 parameters changed (SC-024), zero
-lookups outside the guide (SC-025).
-
-```bash
-# Adding an application needs no Argo CD manifest — the generator finds the directory.
-# Copy charts/apps/nginx to charts/apps/demo, rename it, commit, then:
-kubectl -n argocd get applications
-
-# The copied chart inherited conventions rather than copying them.
-# Change a default in hl-common, then:
-helm template charts/apps/<new-service> | grep -A3 'resources:'
-```
-
-**Expected**: the new chart picks up the foundation change without being edited (SC-027).
+**Expected**: under 15 minutes (SC-023), at most 10 parameters changed (SC-024), zero lookups
+outside the guide (SC-025). Adding an application needs no Argo CD manifest — the generator finds
+the directory. A change to a default in `hl-common` shows up in the copied chart's render without
+editing it (SC-027).
