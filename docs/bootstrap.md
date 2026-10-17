@@ -78,3 +78,5 @@ Workflow):
 k3d cluster create homelab-test --servers 1
 bootstrap/install.sh --context k3d-homelab-test --keys-file /tmp/test-vault-keys.json
 ```
+
+See also [`docs/tiers.md`](tiers.md), [`docs/onboarding.md`](onboarding.md) and the repository [`README.md`](../README.md).

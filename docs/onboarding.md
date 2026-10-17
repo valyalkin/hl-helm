@@ -164,3 +164,5 @@ No staging cluster exists, so a human reviews the rendered diff before a change 
   Record the output in the change description, then apply from a committed state only.
 
 Run `scripts/validate.sh` locally first; it is the same gate CI enforces.
+
+See also [`docs/tiers.md`](tiers.md), [`docs/bootstrap.md`](bootstrap.md) and the repository [`README.md`](../README.md).

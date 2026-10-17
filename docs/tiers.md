@@ -38,3 +38,5 @@ repository's version, the release status, and — when `helm-diff` is installed 
 objects differ from what the repository would apply (a hand-edited replica count, for instance).
 It also lists any unhealthy pod in the infrastructure namespaces. Act on `DRIFT` by reviewing
 `bootstrap/install.sh --only <name> --diff` and re-applying.
+
+See also [`docs/bootstrap.md`](bootstrap.md), [`docs/onboarding.md`](onboarding.md) and the repository [`README.md`](../README.md).
