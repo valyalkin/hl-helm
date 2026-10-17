@@ -169,17 +169,17 @@ dependency order, then Argo CD, which brings up the application tier.
 **Independent Test**: Wipe the k3d cluster, run the single command, and confirm every component
 converges with no further manual step beyond Vault unsealing.
 
-- [ ] T060 [US4] Create the Argo CD wrapper chart `charts/bootstrap/argocd/` pinning chart `argo-cd` 10.10.5
-- [ ] T061 [US4] Create `bootstrap/install-order.yaml` — the pinned install order and values file for each bootstrap and infrastructure chart (FR-055, FR-060)
-- [ ] T062 [US4] Create `bootstrap/install.sh` — the single manual command: `helm upgrade --install` each entry of `install-order.yaml` in order, waiting for health, then Argo CD, then `argocd/applicationset.yaml`; accepts an optional `--repo-credential` persisted only into the Argo CD repository Secret (FR-033, FR-058)
-- [ ] T063 [P] [US4] Create `bootstrap/argocd-values.yaml` for the Argo CD install
-- [ ] T064 [US4] Create `argocd/applicationset.yaml` — a directory generator over `charts/apps/*` deriving the namespace and Application name from the chart directory name, with `prune` and `selfHeal` enabled and `CreateNamespace=false` (FR-030, FR-031, FR-045)
-- [ ] T065 [P] [US4] Verify the generator discovers a newly added application chart directory and deploys it into its own namespace, with no manifest written by hand (FR-045)
-- [ ] T066 [US4] Verify drift correction on k3d: scale the nginx Deployment by hand and confirm Argo CD returns it to the repository state (FR-031, SC-015)
-- [ ] T067 [US4] Write `docs/bootstrap.md` — the rebuild procedure, Vault `operator init` and unseal, where unseal material is stored outside the cluster, and how to upgrade an infrastructure chart with `helm diff upgrade` followed by `helm upgrade` (FR-032, FR-035, FR-059)
-- [ ] T068 [P] [US4] Write `docs/tiers.md` — what each tier may depend on, which tier Argo CD manages, and why no bootstrap component may read from Vault
-- [ ] T069 [US4] Add a documented command to `docs/tiers.md` for reporting infrastructure state, since Argo CD does not watch those tiers (FR-034, SC-017)
-- [ ] T070 [US4] Verify a full cold rebuild on a wiped k3d cluster converges in tier order from `bootstrap/install.sh` alone (SC-018, SC-030)
+- [X] T060 [US4] Create the Argo CD wrapper chart `charts/bootstrap/argocd/` pinning chart `argo-cd` 10.10.5
+- [X] T061 [US4] Create `bootstrap/install-order.yaml` — the pinned install order and values file for each bootstrap and infrastructure chart (FR-055, FR-060)
+- [X] T062 [US4] Create `bootstrap/install.sh` — the single manual command: `helm upgrade --install` each entry of `install-order.yaml` in order, waiting for health, then Argo CD, then `argocd/applicationset.yaml`; accepts an optional `--repo-credential` persisted only into the Argo CD repository Secret (FR-033, FR-058)
+- [X] T063 [P] [US4] Create `bootstrap/argocd-values.yaml` for the Argo CD install
+- [X] T064 [US4] Create `argocd/applicationset.yaml` — a directory generator over `charts/apps/*` deriving the namespace and Application name from the chart directory name, with `prune` and `selfHeal` enabled and `CreateNamespace=false` (FR-030, FR-031, FR-045)
+- [X] T065 [P] [US4] Verify the generator discovers a newly added application chart directory and deploys it into its own namespace, with no manifest written by hand (FR-045)
+- [X] T066 [US4] Verify drift correction on k3d: scale the nginx Deployment by hand and confirm Argo CD returns it to the repository state (FR-031, SC-015)
+- [X] T067 [US4] Write `docs/bootstrap.md` — the rebuild procedure, Vault `operator init` and unseal, where unseal material is stored outside the cluster, and how to upgrade an infrastructure chart with `helm diff upgrade` followed by `helm upgrade` (FR-032, FR-035, FR-059)
+- [X] T068 [P] [US4] Write `docs/tiers.md` — what each tier may depend on, which tier Argo CD manages, and why no bootstrap component may read from Vault
+- [X] T069 [US4] Add a documented command to `docs/tiers.md` for reporting infrastructure state, since Argo CD does not watch those tiers (FR-034, SC-017)
+- [X] T070 [US4] Verify a full cold rebuild on a wiped k3d cluster converges in tier order from `bootstrap/install.sh` alone (SC-018, SC-030)
 
 **Checkpoint**: The repository can rebuild the cluster. Principle I is satisfied in practice.
 
