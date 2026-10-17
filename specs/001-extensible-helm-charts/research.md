@@ -42,7 +42,7 @@ of delegating to upstream documentation.
 **Rationale**: Effective 28 August 2025 Bitnami moved its public catalog to a legacy repository
 (`docker.io/bitnamilegacy`) that receives no updates, and moved maintained, versioned images into
 the paid Bitnami Secure Images offering. The packaged charts at `docker.io/bitnamicharts` stopped
-receiving updates. For a homelab that pins explicit versions (FR-012, FR-058), depending on a
+receiving updates. For a homelab that pins explicit versions (FR-012, FR-064), depending on a
 catalog whose versioned tags have been archived means pinning to images that will never receive a
 security update. This is the single most consequential dependency decision in the plan, because
 Bitnami's Postgres and Redis charts are the conventional default and would otherwise have been the
@@ -62,9 +62,9 @@ a separate first-party chart `charts/infrastructure/postgres`.
 
 **Rationale**: Postgres is the only irreplaceable asset in the cluster. CNPG owns PVC lifecycle,
 failover, in-place major-version handling, and the backup and point-in-time-recovery primitives
-that FR-059's "state backup and restore expectations" will need when backups come into scope.
+that FR-065's "state backup and restore expectations" will need when backups come into scope.
 Writing these by hand in `hl-common` would place data durability on template logic. Splitting the
-operator from the `Cluster` resource into two charts also satisfies FR-060 and FR-064: the
+operator from the `Cluster` resource into two charts also satisfies FR-066 and FR-070: the
 database's own release can be deleted and recreated without touching the operator, and its PVC
 survives both.
 
@@ -72,7 +72,7 @@ survives both.
 - A StatefulSet rendered by `hl-common`: fewer moving parts and better aligned with Principle VII,
   but recovery, failover, and PITR become our problem. Rejected — see Complexity Tracking.
 - Zalando postgres-operator: comparable capability, smaller current community momentum.
-- Postgres outside the cluster on the host: contradicts FR-055's prohibition on manual setup.
+- Postgres outside the cluster on the host: contradicts FR-061's prohibition on manual setup.
 
 **Consequence**: CNPG CRDs must exist before the `postgres` chart renders successfully, which the
 sync-wave ordering in R-006 handles.
@@ -103,10 +103,10 @@ permitted. OpenBao is the OSS fork and a drop-in migration path if that ever cha
 should reference Vault through values rather than hard-coding its service name, so the swap is a
 values change.
 
-**Bootstrap consequence**: Vault is in the bootstrap tier and FR-050 forbids it from consuming a
+**Bootstrap consequence**: Vault is in the bootstrap tier and FR-056 forbids it from consuming a
 secret from the store. Satisfied — Vault's own chart needs no Vault secret. Its unseal keys and
 root token are produced by `vault operator init` during bootstrap and stored by the operator
-outside the cluster (FR-053). A node restart leaves Vault sealed; manual unseal is accepted
+outside the cluster (FR-059). A node restart leaves Vault sealed; manual unseal is accepted
 (spec assumption), and already-running workloads are unaffected because their Kubernetes Secrets
 persist.
 
@@ -118,9 +118,9 @@ persist.
 on `hl-common`, with no persistence.
 
 **Rationale**: Bitnami is excluded (R-002), and Redis here is an accelerator rather than a system
-of record (FR-078), so none of the HA, Sentinel, or operator-based options earn their complexity.
+of record (FR-084), so none of the HA, Sentinel, or operator-based options earn their complexity.
 Deploying it from `hl-common` is also the cleanest proof that the library handles an
-infrastructure workload, not only applications — directly exercising FR-057's requirement that new
+infrastructure workload, not only applications — directly exercising FR-063's requirement that new
 infrastructure follows the same copy-the-reference-chart path. Redis 8 returned to an OSI-approved licence
 (AGPLv3) in 2025, so there is no licensing obstacle.
 
@@ -135,9 +135,10 @@ infrastructure follows the same copy-the-reference-chart path. Redis 8 returned 
 
 ## R-006: Argo CD for the application tier only; a script for everything beneath it
 
-**Decision**: Argo CD holds one `Application` per chart under `charts/apps/`, discovered by a
-root app-of-apps at `argocd/root.yaml`, syncing automatically from `main` with `selfHeal: true`.
-The bootstrap and infrastructure tiers are **not** in Argo CD. `bootstrap/install.sh` installs
+**Decision**: Argo CD manages `charts/apps/` only, through a single ApplicationSet at
+`argocd/applicationset.yaml` whose directory generator discovers `charts/apps/<app>/<service>/`
+and derives the namespace from the first path segment. Applications sync automatically from
+`main` with `selfHeal: true`. The bootstrap and infrastructure tiers are **not** in Argo CD. `bootstrap/install.sh` installs
 them with `helm` in dependency order from an explicit, checked-in order file, then installs Argo
 CD last.
 
@@ -155,8 +156,17 @@ imperatively installed release.
   for infrastructure, which this design loses. Rejected by the operator in favour of the simpler
   boundary; the trade is recorded in the plan.
 - All tiers auto-synced: a merge could restart Postgres. Rejected outright.
-- ApplicationSet with a directory generator over `charts/apps/`: less boilerplate per service,
-  worth reconsidering past roughly fifteen application charts.
+- One hand-written `Application` manifest per service under an app-of-apps root: more explicit,
+  and preferable while the repository holds a handful of charts. Rejected once namespace-per-
+  application was adopted — a two-application example (a todo app with a frontend and a backend,
+  an expense tracker with a frontend and two backends) already produces seven charts counting
+  each application's `namespace` chart, so a manifest per service becomes the dominant cost of
+  adding a service. The ApplicationSet makes adding a service a single directory, which is the
+  operator's stated priority. The trade accepted is that a new directory deploys itself, which
+  is less explicit by design.
+
+**Consequence**: the path convention under `charts/apps/` is load-bearing. A chart in the wrong
+place deploys into the wrong namespace, so CI checks the layout (policy check 4).
 
 **Accepted cost**: nothing watches the infrastructure tiers for out-of-band change. Drift there
 is found by running the rebuild, not by a dashboard. FR-034 is narrowed accordingly, and the
@@ -170,9 +180,10 @@ mitigation is to exercise the rebuild procedure regularly rather than trust it.
 `bootstrap/install-order.yaml` — a pinned list of chart paths and values files — and runs `helm
 upgrade --install` for Vault, the Vault Secrets Operator, CloudNativePG, Postgres and Redis in
 that order, waiting for each to be healthy. It then installs Argo CD from
-`charts/bootstrap/argocd/` with `bootstrap/argocd-values.yaml` and applies `argocd/root.yaml`.
+`charts/bootstrap/argocd/` with `bootstrap/argocd-values.yaml` and applies
+`argocd/applicationset.yaml`.
 
-**Rationale**: FR-052 permits exactly one manual command, and this keeps that promise while
+**Rationale**: FR-058 permits exactly one manual command, and this keeps that promise while
 putting the infrastructure tiers outside continuous reconciliation. Because the same script and
 the same pinned values are used for a rebuild and for day-to-day infrastructure upgrades, the
 rebuild path is exercised by ordinary use rather than only in an emergency.
@@ -184,7 +195,7 @@ diff upgrade`. That diff review is where Principle III's human gate lives for th
 anonymous read suffices. `install.sh` accepts an optional `--repo-credential`, written straight
 into the Argo CD repository Secret and persisted nowhere else, for a future private repository,
 Git write-back, or anonymous rate limits during a cold rebuild. It is never committed and never
-read from Vault, so no bootstrap-tier component depends on the secret store (FR-050).
+read from Vault, so no bootstrap-tier component depends on the secret store (FR-056).
 
 **Resolved risk**: Argo CD no longer needs to adopt its own imperatively installed release — it
 is installed by the script and is not managed by itself, which removes the first-sync ownership
@@ -225,10 +236,10 @@ output of each named template so a convention change cannot silently alter twelv
 **Policy checks are first-party Python** rather than conftest/OPA, because there are four rules and
 adding a policy engine for four rules fails Principle VII:
 1. No image reference resolves to a mutable tag (FR-021, SC-008).
-2. No chart under `charts/apps/` declares a dependency on an infrastructure chart (FR-060, SC-033).
+2. No chart under `charts/apps/` declares a dependency on an infrastructure chart (FR-066, SC-033).
 3. No file contains secret-shaped material (FR-020, SC-007).
-4. The reference chart still renders and validates against the current `hl-common` (FR-047, SC-026),
-   and each `argocd/applications/<tier>/` entry's sync wave matches its tier (FR-054).
+4. The reference chart still renders and validates against the current `hl-common` (FR-048, SC-026),
+   and each `argocd/applications/<tier>/` entry's sync wave matches its tier (FR-060).
 
 **Alternatives considered**: `chart-testing` (`ct`) with a kind cluster — valuable, but installing
 charts into kind cannot validate against the real CRDs and node topology, and CNPG plus Vault in

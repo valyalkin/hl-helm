@@ -1,41 +1,56 @@
-# Contract: Argo CD Application Manifests
+# Contract: Argo CD ApplicationSet
 
 **Feature**: 001-extensible-helm-charts | **Date**: 2026-10-16
 
-How an **application** chart becomes a deployed release. One `Application` per chart under
-`argocd/applications/<chart>.yaml`, all discovered by the root app-of-apps.
+How an **application** becomes a deployed release. A single ApplicationSet at
+`argocd/applicationset.yaml` uses a directory generator over `charts/apps/*` and creates one
+Application per application chart. There are no hand-written manifests.
 
-**Scope**: Argo CD manages `charts/apps/` only. Bootstrap and infrastructure charts have no
-Application and are installed by `bootstrap/install.sh`; an Application pointing at a chart
-outside `charts/apps/` is a defect that CI rejects (research R-006).
+**Scope**: Argo CD manages `charts/apps/` only. Bootstrap and infrastructure charts are installed
+by `bootstrap/install.sh`; an Application pointing outside `charts/apps/` is a defect CI rejects
+(research R-006).
 
-## Required fields
+## Path convention — the deployment configuration
+
+```
+charts/apps/<application>/
+```
+
+| Derived value | From | Example |
+|---------------|------|---------|
+| Namespace | the directory name | `charts/apps/todo` → `todo` |
+| Application name | the directory name | → `todo` |
+
+Adding an application is therefore adding a directory. Adding a service to an existing
+application is a template and a values block inside that application's chart, and needs no
+change here at all (FR-045).
+
+## Generated Application fields
 
 | Field | Rule |
 |-------|------|
-| `metadata.name` | Matches the chart directory name |
-| `metadata.annotations["argocd.argoproj.io/sync-wave"]` | Matches the chart's tier (data-model.md § Tier) |
-| `spec.source.path` | Points at `charts/<tier>/<chart>` |
-| `spec.source.targetRevision` | A tag or commit, never a branch, for application-tier charts |
-| `spec.destination.namespace` | One namespace per chart; infrastructure never shares with applications |
-| `spec.syncPolicy.automated.prune` | `true` for applications, `false` for stateful infrastructure |
-| `spec.syncPolicy.automated.selfHeal` | `true` everywhere — this is FR-031's drift correction |
+| `spec.source.path` | The discovered directory |
+| `spec.source.targetRevision` | `main` — merging an application change deploys it |
+| `spec.destination.namespace` | The first path segment |
+| `spec.syncPolicy.automated.prune` | `true` — application-tier workloads are replaceable |
+| `spec.syncPolicy.automated.selfHeal` | `true` — this is FR-037's drift correction |
+| `spec.syncPolicy.syncOptions` | `CreateNamespace=false` — the application's own chart renders its Namespace, so one release owns it and deletion is deliberate |
 
 ## Rules
 
-- **Prune is off for stateful infrastructure.** An accidental prune of Postgres or Vault is
-  unrecoverable; drift there is reported and corrected by hand. This is the one deliberate gap in
-  FR-031's automatic correction, and it is a considered trade of automation against data loss.
-- **Tier directory and sync wave must agree** (FR-054). CI policy check 4 enforces it; a manifest
-  in `applications/apps/` carrying an infrastructure wave fails the build.
+- **One namespace per application, never shared** (FR-039). Two applications in one namespace
+  means a later network policy cannot separate them.
+- **An application's chart renders its own namespace-scoped resources** — the Namespace, its
+  ServiceAccount and its `VaultAuth`. Because one chart deploys the whole application, a single
+  release owns them and no ownership conflict is possible.
 - **No Application may reference a chart outside this repository.** Upstream charts are consumed
-  through a wrapper chart's `Chart.yaml` dependencies, so the pinned version is visible in a diff.
-- **Adding a service means adding exactly one manifest here** (FR-045). If onboarding requires
-  touching anything else under `argocd/`, the app-of-apps root is wrong.
+  through a wrapper chart's `Chart.yaml` dependencies, so the pinned version shows in a diff.
+- **Infrastructure is excluded by construction**, not by policy: the generator only looks under
+  `charts/apps/`.
 
 ## Health and readiness
 
-Argo CD's reported health is the operator's single view of FR-034 (does the cluster match the
-repository, and is each component healthy). Charts must therefore render workloads whose
-readiness genuinely reflects serviceability — a workload reporting ready while its database is
-unreachable breaks the only status surface the operator has.
+Argo CD's reported health is the operator's view of FR-041 for the application tier. Charts must
+render workloads whose readiness genuinely reflects serviceability — a workload reporting ready
+while its database is unreachable breaks the only status surface there is. Infrastructure state
+is not visible here and is reported by the documented command in `docs/tiers.md`.

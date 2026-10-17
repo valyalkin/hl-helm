@@ -429,115 +429,138 @@ had to look beyond the guide.
 - **FR-039**: The repository MUST provide an onboarding guide that takes an operator from "I have
   a service to deploy" to a deployed service, as a single ordered sequence of steps with no
   prerequisite reading of the shared foundation's internals.
-- **FR-040**: The repository MUST provide a single reference chart that an operator copies and
-  modifies. Onboarding MUST NOT require writing a chart from scratch, and MUST NOT require
-  choosing between variants.
-- **FR-041**: The reference chart MUST contain only parameters specific to the service it
-  deploys. It MUST NOT contain copied boilerplate, so that later changes to shared conventions
-  continue to reach charts created from it.
+- **FR-040**: The repository MUST provide a single reference chart — one chart deploying one
+  application — that an operator copies and modifies. Onboarding MUST NOT require writing a
+  chart from scratch, and MUST NOT require choosing between variants.
+- **FR-041**: The reference chart MUST contain only the parameters and per-service templates
+  specific to what it deploys, each template delegating to the shared foundation. It MUST NOT
+  contain copied boilerplate, so that later changes to shared conventions continue to reach
+  charts created from it.
 - **FR-042**: Every parameter an operator must change MUST be marked as such and explained in
   place, with its purpose and an example value.
 - **FR-043**: A parameter left at its placeholder value MUST fail validation, naming the
   parameter, rather than deploying a partially configured service.
 - **FR-044**: The onboarding guide MUST state explicitly how to extend a chart beyond what the
-  the reference chart covers, and MUST link to a worked example of such an extension.
-- **FR-045**: The onboarding guide MUST document how a new service obtains its secrets, its image,
-  and its place in the deployment agent's configuration, so that onboarding does not stop at a
-  rendered chart.
-- **FR-046**: Documentation MUST be kept current as part of changing the foundation: a change that
-  adds, removes, or renames a parameter an operator sets MUST update the guide and every affected
-  the reference chart in the same change.
-- **FR-047**: Automated checks MUST verify that the reference chart still renders and validates
+  reference chart covers, and MUST link to a worked example of such an extension.
+- **FR-045**: Adding an application MUST require no change to the deployment agent's
+  configuration: the agent MUST discover application charts by their location, so that creating
+  a chart directory is sufficient to deploy it. Adding a service to an existing application MUST
+  be a change to that application's chart alone.
+- **FR-046**: The onboarding guide MUST document both operations distinctly — creating an
+  application by copying the reference chart, and adding a service to an existing application's
+  chart — and MUST cover how each obtains its secrets and its image.
+- **FR-047**: Documentation MUST be kept current as part of changing the foundation: a change that
+  adds, removes, or renames a parameter an operator sets MUST update the guide and the reference
+  chart in the same change.
+- **FR-048**: Automated checks MUST verify that the reference chart still renders and validates
   against the current foundation, so that stale documentation is caught before an operator follows
   it.
-- **FR-048**: The reference chart MUST be a real, continuously deployed workload rather than an
+- **FR-049**: The reference chart MUST be a real, continuously deployed workload rather than an
   inert template, and the infrastructure charts MUST serve as the worked examples of extension, so that
   the documentation's examples are real deployed charts rather than illustrations that can drift.
 
+**Namespaces and application boundaries**
+
+- **FR-050**: Each application MUST occupy its own namespace, and every service belonging to that
+  application MUST deploy into it. Services of different applications MUST NOT share a namespace.
+- **FR-051**: An application's namespace, service account and secret-store authentication
+  binding MUST be rendered by that application's own chart from the shared foundation, so that
+  installing the chart produces everything the application needs and one release owns them.
+- **FR-052**: Each infrastructure dependency MUST occupy its own namespace, separate from every
+  application namespace.
+- **FR-053**: A service MUST reach a dependency in another namespace through its fully qualified
+  in-cluster address supplied as configuration, so that namespace placement is a value rather
+  than a template assumption. Services within one application MAY use short names.
+- **FR-054**: Namespaces MUST be structured so that a default-deny network policy can later be
+  applied per application without moving any workload. Network policies themselves are out of
+  scope for this delivery.
+
 **Deployment tiers and bootstrap**
 
-- **FR-049**: Components MUST be organised into tiers by what they depend on: a bootstrap tier that
+- **FR-055**: Components MUST be organised into tiers by what they depend on: a bootstrap tier that
   depends on nothing inside the cluster, an infrastructure tier that may depend on the bootstrap
   tier, and an application tier that may depend on both.
-- **FR-050**: No component in the bootstrap tier may require a secret from the secret store, so
+- **FR-056**: No component in the bootstrap tier may require a secret from the secret store, so
   that bringing up an empty cluster never requires the secret store to already be running.
-- **FR-051**: The secret store and the deployment agent MUST both be described as charts in this
+- **FR-057**: The secret store and the deployment agent MUST both be described as charts in this
   repository and installed by the bootstrap command. Neither may be configured ad hoc or left as
   an undocumented manual step.
-- **FR-052**: Bringing up an empty cluster MUST require exactly one manual command, after which
+- **FR-058**: Bringing up an empty cluster MUST require exactly one manual command, after which
   every remaining component — including the deployment agent's own ongoing configuration and the
   secret store — is installed from the repository.
-- **FR-053**: The secret store's initialisation and unsealing procedure MUST be documented, and the
+- **FR-059**: The secret store's initialisation and unsealing procedure MUST be documented, and the
   material produced by initialisation MUST be stored outside the cluster. The repository MUST NOT
   contain that material.
-- **FR-054**: An operator MUST be able to determine which tier a component belongs to from the
+- **FR-060**: An operator MUST be able to determine which tier a component belongs to from the
   repository alone, without inferring it from deployment order.
 
 **Infrastructure dependencies**
 
-- **FR-055**: Every infrastructure dependency the applications rely on — relational database,
+- **FR-061**: Every infrastructure dependency the applications rely on — relational database,
   secret store, cache, and any added later — MUST be described as a chart in this repository. No
   infrastructure dependency may require manual setup.
-- **FR-056**: Infrastructure dependencies MUST be deployable to an empty cluster from the
+- **FR-062**: Infrastructure dependencies MUST be deployable to an empty cluster from the
   repository alone, with no step performed outside it beyond the single bootstrap command.
-- **FR-057**: Adding a new infrastructure dependency MUST follow the same onboarding path as any
+- **FR-063**: Adding a new infrastructure dependency MUST follow the same onboarding path as any
   other component, copying the reference chart rather than writing a bespoke one.
-- **FR-058**: Each infrastructure dependency MUST pin an explicit upstream version and apply the
+- **FR-064**: Each infrastructure dependency MUST pin an explicit upstream version and apply the
   homelab's configuration on top, rather than tracking a moving upstream default.
-- **FR-059**: Each stateful infrastructure dependency MUST declare its storage explicitly and state
+- **FR-065**: Each stateful infrastructure dependency MUST declare its storage explicitly and state
   its backup and restore expectations in its own documentation.
 
 **Decoupling applications from their dependencies**
 
-- **FR-060**: An infrastructure dependency MUST be its own chart with its own release lifecycle. An
+- **FR-066**: An infrastructure dependency MUST be its own chart with its own release lifecycle. An
   application chart MUST NOT embed the dependency it consumes.
-- **FR-061**: Deploying, upgrading, rolling back, or deleting an application MUST leave the
+- **FR-067**: Deploying, upgrading, rolling back, or deleting an application MUST leave the
   infrastructure dependencies it consumes untouched and running.
-- **FR-062**: Upgrading an infrastructure dependency MUST NOT require redeploying the applications
+- **FR-068**: Upgrading an infrastructure dependency MUST NOT require redeploying the applications
   that consume it, beyond a restart where the application cannot reconnect on its own.
-- **FR-063**: An application MUST reach its dependencies through a stable address supplied as
+- **FR-069**: An application MUST reach its dependencies through a stable address supplied as
   configuration, never through an address assembled from another chart's internal naming.
-- **FR-064**: An infrastructure dependency MUST be deployable and verifiable on its own, before any
+- **FR-070**: An infrastructure dependency MUST be deployable and verifiable on its own, before any
   application that consumes it exists.
-- **FR-065**: Multiple applications MUST be able to consume the same infrastructure dependency
+- **FR-071**: Multiple applications MUST be able to consume the same infrastructure dependency
   without any of them owning its lifecycle.
-- **FR-066**: Persistent data MUST survive deletion and redeployment of every application that
+- **FR-072**: Persistent data MUST survive deletion and redeployment of every application that
   consumes it.
-- **FR-067**: An application MUST start, report itself unready, and recover on its own when a
+- **FR-073**: An application MUST start, report itself unready, and recover on its own when a
   dependency is unavailable at startup, rather than requiring a deployment ordering guarantee to
   function.
 
 **First delivery scope**
 
-- **FR-068**: The first delivery MUST cover the shared chart foundation, the bootstrap tier (the
+- **FR-074**: The first delivery MUST cover the shared chart foundation, the bootstrap tier (the
   deployment agent and the secret store), the infrastructure tier (a relational database and a
-  cache), and one reference application chart. It MUST NOT include any business application; the
+  cache), and one reference chart deploying one application. It MUST NOT include any business
+  application; the
   deliverable is a repository ready for real services, not the services themselves.
-- **FR-069**: The delivered charts MUST exercise distinct workload shapes — a stateless service
+- **FR-075**: The delivered charts MUST exercise distinct workload shapes — a stateless service
   with ingress, and stateful data services — so that the foundation is proven against more than
   one shape before real services are written.
-- **FR-070**: The reference chart MUST require only minimal configuration to deploy: the image
+- **FR-076**: The reference chart MUST require only minimal configuration to deploy: the image
   version and the hostname. Everything else MUST come from foundation defaults.
-- **FR-071**: The database MUST use durable storage whose lifecycle is independent of the release,
+- **FR-077**: The database MUST use durable storage whose lifecycle is independent of the release,
   so that deleting and re-deploying the database chart does not destroy its data.
-- **FR-072**: The database MUST be delivered ready for consumption: reachable at a stable
-  in-cluster address, with an application database and role already created, and credentials
-  already present in the secret store.
-- **FR-073**: The cache MUST be delivered ready for consumption: reachable at a stable in-cluster
+- **FR-078**: The database MUST be delivered ready for consumption: reachable at a stable
+  in-cluster address, serving one database and one role per consuming application rather than a
+  single shared one, each with its credentials already present in the secret store. Adding an
+  application's database MUST be a values change to the database chart, not a new chart.
+- **FR-079**: The cache MUST be delivered ready for consumption: reachable at a stable in-cluster
   address, with any credentials already present in the secret store.
-- **FR-074**: Each dependency's connection details — address, port, secret path, and the values
+- **FR-080**: Each dependency's connection details — address, port, secret path, and the values
   key a consuming chart sets — MUST be documented in that dependency's README, so a future
   service can consume it without reading its templates.
-- **FR-075**: The foundation MUST provide the dependency-reference and secret-reference surfaces a
+- **FR-081**: The foundation MUST provide the dependency-reference and secret-reference surfaces a
   future service will need, and these MUST be demonstrated by rendering, independently of whether
   a consuming service exists yet.
-- **FR-076**: A future service MUST be able to declare a dependency as optional, so that it stays
+- **FR-082**: A future service MUST be able to declare a dependency as optional, so that it stays
   functional with reduced capability when that dependency is unavailable; the cache is the
   intended first use of this.
-- **FR-077**: The delivered stack MUST be deployable to an empty cluster using only the repository
+- **FR-083**: The delivered stack MUST be deployable to an empty cluster using only the repository
   and the single bootstrap command, producing a reachable reference service and healthy database
   and cache.
-- **FR-078**: Onboarding a real service onto the delivered dependencies MUST require no change to
+- **FR-084**: Onboarding a real service onto the delivered dependencies MUST require no change to
   any infrastructure chart — only a new application chart and its Application manifest.
 
 ### Key Entities
@@ -728,8 +751,11 @@ had to look beyond the guide.
 - The audience for the onboarding guide is the operator themselves, months later, having forgotten
   the details — not a newcomer to Kubernetes. The guide assumes cluster familiarity but assumes no
   memory of how this repository works.
-- There is exactly one reference chart, an nginx service, and it is a real deployed workload
-  rather than an inert template. A chart that is continuously rendered, validated, and running
+- There is exactly one reference chart — an nginx application — and it is a real deployed
+  workload rather than an inert template. One chart deploys one application, following Helm
+  convention that a release is an application; a chart holding several services renders each
+  from a one-line template delegating to the shared foundation, so there is no copied
+  boilerplate and no per-service chart. A chart that is continuously rendered, validated, and running
   cannot silently rot, which is what a separate scaffold directory risks. A service needing a
   shape the reference does not show — durable storage, a dependency reference — extends it using
   the mechanisms in the onboarding guide rather than selecting a different starting point.

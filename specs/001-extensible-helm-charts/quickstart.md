@@ -77,7 +77,9 @@ it to avoid anonymous GitHub rate limits during a cold rebuild, and whenever Arg
 access. It is written straight into the Argo CD repository Secret and persisted nowhere else —
 never committed, never read from Vault (research R-007).
 
-**Expected**: Argo CD is installed and `argocd/root.yaml` applied. Nothing else is run by hand.
+**Expected**: the infrastructure tiers are installed in order, then Argo CD, then
+`argocd/applicationset.yaml`, which discovers every application chart under `charts/apps/*`.
+Nothing else is run by hand.
 
 ```bash
 kubectl -n argocd get applications -w
@@ -90,7 +92,7 @@ operator, then Postgres and Redis, then the nginx reference service.
 
 ## Step 3 — Initialise and unseal Vault
 
-The one place a human holds material that is never committed (FR-053).
+The one place a human holds material that is never committed (FR-059).
 
 ```bash
 kubectl -n vault exec -it vault-0 -- vault operator init -key-shares=1 -key-threshold=1
@@ -101,7 +103,7 @@ kubectl -n vault exec -it vault-0 -- vault operator unseal <key>
 password manager, not this repository. Then seed the database and cache secrets and the Kubernetes auth role
 per `docs/bootstrap.md`.
 
-**Verify the tier rule** (FR-050): the bootstrap tier came up *before* this step, confirming
+**Verify the tier rule** (FR-056): the bootstrap tier came up *before* this step, confirming
 nothing in it depended on Vault.
 
 ---
@@ -152,7 +154,7 @@ Proves SC-031, SC-032, SC-034 — the requirements most easily lost in implement
 ```bash
 # Applications come and go; dependencies do not notice.
 for i in $(seq 1 10); do
-  kubectl -n apps delete deployment nginx
+  kubectl -n nginx delete deployment nginx-web
   argocd app sync nginx --timeout 120
 done
 kubectl -n database get cluster postgres -o jsonpath='{.status.readyInstances}'
@@ -164,7 +166,7 @@ kubectl -n database get cluster postgres -o jsonpath='{.status.readyInstances}'
 ```bash
 # A dependency upgrade leaves applications alone.
 # Bump the Redis image in charts/infrastructure/redis, merge, then:
-kubectl -n apps get pods -l app=nginx -o jsonpath='{.items[*].metadata.creationTimestamp}'
+kubectl -n nginx get pods -o jsonpath='{.items[*].metadata.creationTimestamp}'
 ```
 
 **Expected**: unchanged timestamps — no application was redeployed (SC-032).
@@ -184,7 +186,7 @@ Proves SC-016 and FR-028.
 
 ```bash
 # Rotate in Vault, then watch the consumer.
-kubectl -n apps get pods -l app=nginx -w
+kubectl -n nginx get pods -w
 ```
 
 **Expected**: the `VaultStaticSecret` refreshes within `refreshAfter`, and the consuming
@@ -197,9 +199,9 @@ workload is restarted automatically by VSO's rollout target. No chart changed.
 Proves SC-015 and FR-031.
 
 ```bash
-kubectl -n apps scale deployment nginx --replicas=5
+kubectl -n nginx scale deployment nginx-web --replicas=5
 sleep 60
-kubectl -n apps get deployment nginx -o jsonpath='{.spec.replicas}'
+kubectl -n nginx get deployment nginx-web -o jsonpath='{.spec.replicas}'
 ```
 
 **Expected**: back to the repository's value, with the drift reported in Argo CD.
@@ -217,6 +219,10 @@ beyond the guide.
 lookups outside the guide (SC-025).
 
 ```bash
+# Adding an application needs no Argo CD manifest — the generator finds the directory.
+# Copy charts/apps/nginx to charts/apps/demo, rename it, commit, then:
+kubectl -n argocd get applications
+
 # The copied chart inherited conventions rather than copying them.
 # Change a default in hl-common, then:
 helm template charts/apps/<new-service> | grep -A3 'resources:'

@@ -18,10 +18,33 @@ One deployable unit. Maps to spec entity *Application chart* / *Infrastructure c
 | `version` | semver | yes | Bumped on any template or default change (FR-018, Principle VI) |
 | `appVersion` | string | yes | Tracks the upstream component version |
 | `tier` | enum | yes | `bootstrap` \| `infrastructure` \| `application` |
-| `dependencies` | list | no | Library chart only. An `application`-tier chart MUST NOT depend on an `infrastructure`-tier chart (FR-060) |
+| `namespace` | string | yes | For application charts, the chart's own directory name, never set by hand |
+| `dependencies` | list | no | Library chart only. An `application`-tier chart MUST NOT depend on an `infrastructure`-tier chart (FR-066) |
 
 **Validation**: `tier` must agree with the chart's directory and with its Argo CD sync wave
-(FR-054). Enforced by policy check 4.
+(FR-060). Enforced by policy check 4.
+
+---
+
+## Application
+
+One chart deploying one application: every service it is made of, plus the namespace they share.
+One Helm release, one Argo CD Application.
+
+| Field | Type | Rule |
+|-------|------|------|
+| `name` | string | The chart directory name; becomes the namespace (FR-050) |
+| `services` | map | One values block per service, each rendered by one template calling `hl-common.all` |
+| `databases` | list | Databases and roles this application needs from the shared Postgres cluster |
+
+**Rules**: two applications MUST NOT share a chart or a namespace (FR-050); the chart renders its
+own Namespace, ServiceAccount and `VaultAuth`, so one release owns them (FR-051); and a service
+reaches anything outside its namespace by fully qualified address supplied as configuration
+(FR-053), while services within the application may use short names.
+
+**Example**: `charts/apps/todo/` with `values.yaml` holding `frontend:` and `backend:` blocks and
+`templates/{namespace,frontend,backend}.yaml` → namespace `todo`, two services, one database
+named `todo` in the shared cluster.
 
 ---
 
@@ -44,11 +67,11 @@ The common shape every chart renders through `hl-common`. Maps to the shared fou
 | `resources.limits.memory` | quantity | yes | — | Mandatory; unbounded workloads can evict the cluster |
 | `resources.limits.cpu` | quantity | no | unset | Deliberately unset — CPU limits cause throttling without protecting the node |
 | `probes.liveness` | probe | yes | — | Required for long-running workloads |
-| `probes.readiness` | probe | yes | — | Must fail while dependencies are unreachable (FR-067) |
+| `probes.readiness` | probe | yes | — | Must fail while dependencies are unreachable (FR-073) |
 | `probes.startup` | probe | no | — | Recommended for JVM workloads |
 
 **State transitions**: a workload is *rendered* → *synced* → *progressing* → *healthy* or
-*degraded*. Readiness governs the last step and is what FR-067 relies on.
+*degraded*. Readiness governs the last step and is what FR-073 relies on.
 
 ---
 
@@ -74,7 +97,7 @@ takeover.
 | `enabled` | bool | no | `false` | |
 | `size` | quantity | yes when enabled | — | |
 | `storageClassName` | string | yes when enabled | — | Explicit; implicit default class is forbidden |
-| `retain` | bool | no | `true` | Claim outlives the release (FR-074, Principle VI) |
+| `retain` | bool | no | `true` | Claim outlives the release (FR-080, Principle VI) |
 | `mountPath` | string | yes when enabled | — | |
 
 ---
@@ -98,14 +121,14 @@ producing an empty credential (FR-027). No field may contain secret material (FR
 ## Dependency reference
 
 Maps to spec entity *Dependency reference*. How an application reaches infrastructure without
-either side knowing the other's internals (FR-063).
+either side knowing the other's internals (FR-069).
 
 | Field | Type | Required | Rule |
 |-------|------|----------|------|
 | `host` | string | yes | Stable in-cluster service address, supplied as configuration |
 | `port` | int | yes | |
 | `credentials` | secret ref | no | A Secret reference as above |
-| `optional` | bool | no | Defaults to `false`. `true` means the consumer degrades rather than fails (Redis, FR-078) |
+| `optional` | bool | no | Defaults to `false`. `true` means the consumer degrades rather than fails (Redis, FR-084) |
 
 **Rule**: never assembled from another chart's release name or template helpers. A dependency's
 address is an input, which is what makes the two lifecycles separable.
@@ -122,7 +145,7 @@ Maps to spec entity *Tier*. Not a values field — a property of a chart's locat
 | `infrastructure` | bootstrap | `bootstrap/install.sh` | VSO, CNPG operator, Postgres, Redis |
 | `application` | bootstrap, infrastructure | Argo CD, auto-sync from `main` | nginx reference chart; real services later |
 
-**Invariants**: no bootstrap-tier chart may contain a Secret reference (FR-050) — the single rule
+**Invariants**: no bootstrap-tier chart may contain a Secret reference (FR-056) — the single rule
 that keeps a cold rebuild from deadlocking. And only an application-tier chart may have an Argo
 CD Application (FR-030); one pointing above `charts/apps/` is a defect. Both are checked in CI.
 
@@ -159,7 +182,7 @@ running service and the thing an operator copies.
 | `parameters` | list | Each marked `# REQUIRED:` with purpose and example |
 | `placeholders` | list | Sentinel values that MUST fail validation if left unchanged (FR-043) |
 
-**Validation**: the reference chart renders, validates, and deploys on every change (FR-047), so
+**Validation**: the reference chart renders, validates, and deploys on every change (FR-048), so
 a foundation change that would invalidate a copy fails CI rather than an operator's afternoon.
 Because it is a deployed workload rather than an inert template, staleness is caught by the
 cluster as well as by CI.

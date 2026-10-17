@@ -16,6 +16,12 @@ releases, and an application tier holding a single nginx reference chart. No bus
 application is in scope: the deliverable is a repository whose dependencies are running and whose
 charts are ready to be extended with real services.
 
+One chart deploys one application, as Helm convention expects. The chart renders its own
+namespace, service account and Vault binding, plus one template per service — each a single line
+delegating to the library. An Argo CD ApplicationSet discovers application charts by directory,
+so adding an application means adding a chart directory, and adding a service means a template
+and a values block in the chart that already exists.
+
 One bootstrap command installs the bootstrap and infrastructure tiers in dependency order from
 pinned charts, then installs Argo CD. **Argo CD manages the application tier only** — a merge to
 `main` deploys an application, while an infrastructure change reaches the cluster only through an
@@ -61,7 +67,7 @@ only pre-production gate; memory limits mandatory on every workload; no componen
 tier may read a secret from Vault; unseal material never enters the repository
 
 **Scale/Scope**: 8 charts (1 library, 2 bootstrap, 4 infrastructure, 1 reference application),
-one cluster, one operator, low single-digit requests per second
+one namespace per application, one cluster, one operator, low single-digit requests per second
 
 ## Constitution Check
 
@@ -118,13 +124,14 @@ charts/
 │       ├── values.yaml             # Documented defaults, no resources of its own
 │       └── templates/
 │           ├── _workload.tpl       # Deployment / StatefulSet
-│           ├── _service.tpl
+│           ├── _service.tpl        # Kubernetes Service from declared ports
 │           ├── _ingress.tpl        # TLS always on
 │           ├── _probes.tpl
 │           ├── _resources.tpl      # Memory limit mandatory
 │           ├── _image.tpl          # ghcr.io/<owner> default registry
 │           ├── _secrets.tpl        # VaultStaticSecret + rollout restart wiring
-│           ├── _config.tpl          # ConfigMap from values or verbatim files, restart-on-change
+│           ├── _namespace.tpl      # Namespace + ServiceAccount + VaultAuth per application
+│           ├── _config.tpl         # ConfigMap from values or verbatim files, restart-on-change
 │           ├── _storage.tpl        # Explicit storageClassName, retained claims
 │           ├── _naming.tpl         # Names, labels, selectors
 │           └── _validate.tpl       # fail() on unset required values
@@ -136,20 +143,25 @@ charts/
 │   ├── cloudnative-pg/             # Wraps cloudnative-pg 0.29.1 (the operator)
 │   ├── postgres/                   # First-party: CNPG Cluster CR + VSO secret
 │   └── redis/                      # First-party: redis:8-alpine via hl-common
-└── apps/                           # Tier 2 — may depend on tiers 0 and 1
-    └── nginx/                      # THE reference chart: a real service, and the copy source
+└── apps/                           # Tier 2 — one chart per application
+    └── nginx/                      # THE reference chart — copy this directory
+        ├── Chart.yaml
+        ├── values.yaml             # one block per service
+        └── templates/
+            ├── namespace.yaml      # Namespace + ServiceAccount + VaultAuth
+            └── web.yaml            # one line per service, delegating to hl-common
 
 argocd/
-├── root.yaml                       # App-of-apps entry point — application tier only
-└── applications/                   # One Application per chart under charts/apps/
+└── applicationset.yaml             # Directory generator over charts/apps/* —
+                                    # one Application per application chart
 
 bootstrap/
-├── install.sh                      # THE single manual command (FR-052): infra, then Argo CD
+├── install.sh                      # THE single manual command (FR-058): infra, then Argo CD
 ├── install-order.yaml              # Pinned install order and values for bootstrap + infra
 └── argocd-values.yaml              # Values for the Argo CD install
 
 docs/
-├── onboarding.md                   # The guide (FR-039–FR-048)
+├── onboarding.md                   # The guide (FR-039–FR-049)
 ├── bootstrap.md                    # Rebuild from empty node, Vault init and unseal
 └── tiers.md                        # What each tier may depend on
 
@@ -162,14 +174,16 @@ tests/
 ```
 
 **Structure Decision**: Charts are grouped by tier (`bootstrap/`, `infrastructure/`, `apps/`)
-because the tier boundary is the feature's central invariant — FR-049 through FR-054 — and a
+because the tier boundary is the feature's central invariant — FR-055 through FR-060 — and a
 directory layout that mirrors it makes a violation visible in a diff rather than discoverable at
 runtime. There is no `scaffolds/` directory: the copy source is `charts/apps/nginx/`, a real
 deployed service. A template that is continuously rendered, validated, and running cannot
 silently rot, whereas an inert scaffold directory can drift from the foundation unnoticed until
 someone copies it. The tier boundary is now operational as well as organisational: everything
 under `charts/apps/` is reconciled continuously by Argo CD, and everything above it is installed
-and upgraded by `bootstrap/install.sh`, so `argocd/applications/` holds application charts only.
+and upgraded by `bootstrap/install.sh`. Each directory under `charts/apps/` is one application
+chart, and its name is the namespace — a convention the ApplicationSet reads directly, so
+directory layout *is* the deployment configuration.
 
 ## Complexity Tracking
 
@@ -179,7 +193,7 @@ and upgraded by `bootstrap/install.sh`, so `argocd/applications/` holds applicat
 |-----------|------------|--------------------------------------|
 | Argo CD controller | FR-030, FR-031 require continuous reconciliation and automatic drift correction for the application tier | Operator-run `helm upgrade` is used for the infrastructure tiers instead, and is preferred there precisely because it cannot restart a data service without an explicit act |
 | Vault + Vault Secrets Operator (2 controllers) | FR-026–FR-029 require secrets that are never committed, rotate without chart changes, and restart consumers that cannot reload. The operator chose Vault explicitly | SOPS-encrypted files need no controller but cannot rotate without a commit; External Secrets Operator is one controller instead of two but adds an abstraction layer over a single backend, and VSO's `rolloutRestartTargets` satisfies FR-019 directly |
-| CloudNativePG operator | Postgres is the system of record. CNPG owns failover, PVC lifecycle, and point-in-time recovery primitives that FR-014 and FR-059 would otherwise place on hand-written templates | A plain StatefulSet from `hl-common` is fewer moving parts but puts data durability and recovery on us — the one place in a homelab where losing the gamble is unrecoverable. Bitnami's chart is excluded outright (research R-002) |
+| CloudNativePG operator | Postgres is the system of record. CNPG owns failover, PVC lifecycle, and point-in-time recovery primitives that FR-014 and FR-065 would otherwise place on hand-written templates | A plain StatefulSet from `hl-common` is fewer moving parts but puts data durability and recovery on us — the one place in a homelab where losing the gamble is unrecoverable. Bitnami's chart is excluded outright (research R-002) |
 | First-party library chart rather than adopting `bjw-s/common` | FR-002 and FR-005 require *our* conventions enforced centrally, and SC-019's 20-line budget depends on defaults we choose | `bjw-s/common` is mature and homelab-proven, but adopting it makes the foundation a wrapper around someone else's defaults; see research R-001 for the reversal path if our library outgrows its usefulness |
 
 Net: four controllers, three of them direct consequences of operator decisions recorded in the

@@ -10,7 +10,7 @@ here is a breaking change to every chart (major version bump, migration note per
 
 | Template | Renders | Notes |
 |----------|---------|-------|
-| `hl-common.all` | Every resource the values describe | The whole interface for a typical chart; one line in `templates/main.yaml` |
+| `hl-common.all` | Every resource one service needs | One line per service, called with that service's values block |
 | `hl-common.workload` | Deployment or StatefulSet | Chosen by `.Values.workload.kind` |
 | `hl-common.service` | Service | Ports from `.Values.service.ports` |
 | `hl-common.ingress` | Ingress | TLS stanza always emitted (R-008) |
@@ -18,6 +18,7 @@ here is a breaking change to every chart (major version bump, migration note per
 | `hl-common.config` | ConfigMap from `config.values` and `config.files` | Content hashed onto the pod template unless `restartOnChange: false` |
 | `hl-common.pvc` | PersistentVolumeClaim | Only when `.Values.storage.enabled` |
 | `hl-common.serviceaccount` | ServiceAccount | Plus the VSO `VaultAuth` binding |
+| `hl-common.namespace` | Namespace, ServiceAccount and `VaultAuth` for one application | Called once per application chart, from `templates/namespace.yaml` |
 
 ## Helpers available to extending charts
 
