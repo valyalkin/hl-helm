@@ -52,3 +52,30 @@ managed role. Requires Vault to be initialised, unsealed and configured
 ## Deviation from the constitution
 
 None.
+
+## Values
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| cluster.imageName | string | `"ghcr.io/cloudnative-pg/postgresql:17.7@sha256:dab846a58e8ca3c8872584ab2225ee93fb9e659a87c52e163fefae9275b46f51"` |  |
+| cluster.instances | int | `1` |  |
+| cluster.name | string | `"postgres"` |  |
+| cluster.resources.limits.memory | string | `"512Mi"` |  |
+| cluster.resources.requests.cpu | string | `"100m"` |  |
+| cluster.resources.requests.memory | string | `"256Mi"` |  |
+| cluster.storage.size | string | `"5Gi"` |  |
+| cluster.storage.storageClass | string | `"local-path"` |  |
+| databases | list | `[]` |  |
+| provision.authMount | string | `"kubernetes"` |  |
+| provision.enabled | bool | `true` |  |
+| provision.image.digest | string | `"sha256:5be49781ecf78bfe775c5309c6a4d9f4e9e040b6c885c99eb2b12fb69855e1a2"` |  |
+| provision.image.name | string | `"vault"` |  |
+| provision.image.owner | string | `"hashicorp"` |  |
+| provision.image.registry | string | `"docker.io"` |  |
+| provision.image.tag | string | `"2.0.4"` |  |
+| provision.kvMount | string | `"kv"` |  |
+| provision.role | string | `"provision"` |  |
+| provision.vaultAddr | string | `"http://vault.vault.svc.cluster.local:8200"` |  |
+| vaultAuth.createNamespace | bool | `false` |  |
+| vaultAuth.role | string | `"infra"` |  |
+| vaultAuth.serviceAccount | string | `"postgres-vault"` |  |

@@ -51,3 +51,4 @@ security context, mutable image tags rejected, and a restart when its ConfigMap 
 
 SemVer independent of consumers. Signature or guarantee change: MAJOR. New optional value: MINOR.
 Output-equivalent fix: PATCH.
+

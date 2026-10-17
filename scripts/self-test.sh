@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Inject six deliberate violations into a throwaway copy of the repository and assert that the
+# Inject eight deliberate violations into a throwaway copy of the repository and assert that the
 # gate rejects each one, naming the offending file and value (quickstart step 1).
 set -uo pipefail
 here=$(cd "$(dirname "$0")/.." && pwd)
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
-rsync -a --exclude 'charts/**/charts/' --exclude '*.tgz' "$here/" "$work/" 
+rsync -a "$here/" "$work/"
 cd "$work" && git add -A >/dev/null 2>&1 && git -c user.email=t@t -c user.name=t commit -qm base --allow-empty
 export HL_ROOT="$work"
 helm dependency update charts/apps/nginx >/dev/null
@@ -21,7 +21,7 @@ expect() { # name, needle-1, needle-2, command...
     echo "MISSED   $name (rc=$rc, wanted '$n1' and '$n2')"; echo "$out" | sed 's/^/    /'
   fi
 }
-reset() { git checkout -q -- . && git clean -fdq -e charts/apps/nginx/charts -e tests/unit/charts; }
+reset() { git checkout -q -- . && git clean -fdq -e 'charts/**/charts' -e 'tests/unit/charts'; }
 
 # 1. mutable image tag in a raw manifest (bypasses the library's own guard)
 printf 'apiVersion: v1\nkind: Pod\nmetadata: {name: x}\nspec:\n  containers:\n    - name: x\n      image: busybox:latest\n' > charts/apps/nginx/templates/raw.yaml
@@ -29,11 +29,7 @@ expect "mutable image tag" "busybox:latest" "charts/apps/nginx" python3 tests/po
 reset
 
 # 2. embedded dependency in an application chart
-cat >> charts/apps/nginx/Chart.yaml <<'Y'
-  - name: redis
-    version: "1.0.0"
-    repository: "file://../../infrastructure/redis"
-Y
+sed -i.bak 's#^dependencies:#dependencies:\n  - name: redis\n    version: "1.0.0"\n    repository: "file://../../infrastructure/redis"#' charts/apps/nginx/Chart.yaml && rm charts/apps/nginx/Chart.yaml.bak
 expect "embedded dependency" "charts/apps/nginx/Chart.yaml" "redis" python3 tests/policy/no_embedded_dependencies.py
 reset
 
@@ -58,6 +54,20 @@ reset
 sed -i.bak -e '/limits: {memory: 64Mi}/d' -e '/^    resources:$/d' charts/apps/nginx/values.yaml && rm charts/apps/nginx/values.yaml.bak
 expect "missing memory limit" "web.workload.resources.limits.memory" "nginx" helm template ci charts/apps/nginx
 reset
+
+# 7. reference chart copied and renamed but a parameter left at its placeholder
+cp -R charts/apps/nginx charts/apps/todo && rm -rf charts/apps/todo/charts charts/apps/todo/Chart.lock
+sed -i.bak 's/^name: nginx/name: todo/' charts/apps/todo/Chart.yaml && rm charts/apps/todo/Chart.yaml.bak
+helm dependency update charts/apps/todo >/dev/null
+expect "unchanged placeholder" "web.workload.image.name" "todo" helm template ci charts/apps/todo
+reset; rm -rf charts/apps/todo
+
+# 8. two charts claiming the same ingress host
+cp -R charts/apps/nginx charts/apps/dup && rm -rf charts/apps/dup/charts charts/apps/dup/Chart.lock
+sed -i.bak -e 's/^name: nginx/name: dup/' -e '/^annotations:/,$d' charts/apps/dup/Chart.yaml && rm charts/apps/dup/Chart.yaml.bak
+helm dependency update charts/apps/dup >/dev/null
+expect "duplicate ingress host" "nginx.home.example" "charts/apps/dup" python3 tests/policy/collisions.py
+reset; rm -rf charts/apps/dup
 
 echo "$pass of $total violations caught"
 [ $pass -eq $total ]

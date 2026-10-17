@@ -1,0 +1,22 @@
+# nginx
+
+{{ template "chart.description" . }}
+
+This chart is **both** a running service (nginx, deployed by Argo CD into the `nginx` namespace)
+**and** the copy source for onboarding a new application: copy the directory, rename it, set the
+parameters marked `REQUIRED` in `values.yaml`. See [`docs/onboarding.md`](../../../docs/onboarding.md).
+
+Because it is deployed continuously and rendered by CI on every change, it cannot drift from the
+shared foundation unnoticed.
+
+For extension examples beyond one stateless service — durable storage, dependency references,
+custom resources — see `charts/infrastructure/postgres/` and `charts/infrastructure/redis/`, and
+the extension guide in `charts/library/hl-common/README.md`.
+
+## Image
+
+`nginxinc/nginx-unprivileged:alpine` pinned by digest, in place of `nginx:alpine`: the shared
+security defaults run every container non-root with a read-only root filesystem, which the stock
+nginx image cannot do.
+
+{{ template "chart.valuesSection" . }}

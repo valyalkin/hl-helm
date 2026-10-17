@@ -17,6 +17,12 @@ else:
     for fx in fixtures(ref):
         render(ref, fx)  # exits non-zero with a message if it no longer renders
 
+for tier, d in charts(("apps",)):
+    name = yaml.safe_load((d / "Chart.yaml").read_text())["name"]
+    if name != d.name:
+        failures.append(f"{rel(d / 'Chart.yaml')}: chart name {name!r} must equal its directory "
+                        f"{d.name!r}, which becomes the namespace (FR-050)")
+
 for tier, d in charts(("bootstrap",)):
     for f in d.rglob("*"):
         if f.is_file() and "/charts/" not in str(f.relative_to(d)) and f.suffix in (".yaml", ".yml", ".tpl"):

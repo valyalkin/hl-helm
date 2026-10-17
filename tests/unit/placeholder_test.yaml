@@ -1,0 +1,17 @@
+suite: reference placeholder guard
+templates: [templates/all.yaml]
+release: {name: demo}
+tests:
+  - it: passes when no parameter holds its shipped placeholder
+    asserts:
+      - hasDocuments: {count: 2}
+  - it: fails naming the image parameter left at its placeholder
+    set:
+      services.web.workload.image.name: placeholder-app
+    asserts:
+      - failedTemplate: {errorPattern: "services.web.workload.image.name"}
+  - it: fails naming the hostname parameter left at its placeholder
+    set:
+      services.web.ingress: {enabled: true, host: placeholder.example}
+    asserts:
+      - failedTemplate: {errorPattern: "services.web.ingress.host"}

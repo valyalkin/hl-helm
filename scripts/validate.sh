@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Pre-merge gate (FR-016): lint -> template -> helm unittest -> kubeconform -> policy -> docs.
 #   scripts/validate.sh              run the full gate
-#   scripts/validate.sh --self-test  inject six deliberate violations and assert each is caught
+#   scripts/validate.sh --self-test  inject eight deliberate violations and assert each is caught
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -47,10 +47,12 @@ done
 
 echo "== docs"
 if find charts -name 'README.md.gotmpl' | grep -q .; then
+  before=$(cat charts/*/*/README.md | shasum)
   helm-docs >/dev/null
-  git diff --exit-code -- 'charts/**/README.md' >/dev/null || { echo "docs FAILED: helm-docs output is stale; run helm-docs and commit"; fail=1; }
+  after=$(cat charts/*/*/README.md | shasum)
+  [ "$before" = "$after" ] || { echo "docs FAILED: chart READMEs were stale; helm-docs regenerated them — commit the result"; fail=1; }
 else
-  echo "docs skipped: no README.md.gotmpl templates yet"
+  echo "docs skipped: no README.md.gotmpl templates"
 fi
 
 [ $fail -eq 0 ] && echo "GATE PASS" || echo "GATE FAIL"

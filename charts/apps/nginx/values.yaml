@@ -1,16 +1,29 @@
+# One block per service; `web` is the only service here. Add `api:`, `worker:` ... blocks (and a
+# matching templates/<service>.yaml) to add services to this application.
+# Parameters marked REQUIRED must change when you copy this chart; the rest have safe defaults.
 web:
   workload:
     image:
-      registry: docker.io
-      owner: nginxinc
+      # -- REQUIRED: image name, without registry or owner. Example: `todo-backend`
       name: nginx-unprivileged
+      # -- REQUIRED: a version tag (never `latest`) or a digest. Example: `1.4.2`
       tag: alpine
+      # -- OPTIONAL: pins the image by digest; wins over the tag. Example: `sha256:3782...`
       digest: sha256:378d0c32f6562f7fd9629170797f57d2b953aa09be983b3daaf4809bb039ca00
+      # -- OPTIONAL: registry; defaults to `ghcr.io`. Upstream images set it. Example: `docker.io`
+      registry: docker.io
+      # -- OPTIONAL: registry owner; defaults to this repository's owner. Example: `nginxinc`
+      owner: nginxinc
+    # -- REQUIRED: memory limit — there is no default on a shared node. Example: `128Mi`
     resources:
       limits: {memory: 64Mi}
+    # -- OPTIONAL: writable directories for the read-only root filesystem. Example: `[/tmp]`
     tmpDirs: [/tmp]
+  # -- REQUIRED: the ports the service exposes. Example: `[{name: http, port: 80, targetPort: 8080}]`
   service:
     ports: [{name: http, port: 80, targetPort: 8080}]
   ingress:
+    # -- OPTIONAL: expose the service over TLS. Example: `true`
     enabled: true
+    # -- REQUIRED when ingress is enabled: public hostname, unique across charts. Example: `todo.home.lan`
     host: nginx.home.example

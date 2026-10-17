@@ -1,0 +1,13 @@
+# {{ template "chart.name" . }}
+
+Vault Secrets Operator wrapper chart. Delivers `VaultStaticSecret` resources from Vault KV to Kubernetes Secrets and restarts consumers (`rolloutRestartTargets`) when a value rotates.
+
+## Storage, backup and restore
+
+Stateless. Nothing to back up.
+
+## Deviation from the constitution
+
+None. Pins upstream chart `vault-secrets-operator` 1.6.0; the default `VaultConnection` points at the in-cluster Vault address supplied in `values.yaml`.
+
+{{ template "chart.valuesSection" . }}

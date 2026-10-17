@@ -1,0 +1,26 @@
+# vault (bootstrap tier)
+
+Wraps the upstream `vault` chart 0.34.1 (Vault 2.0.4): standalone mode, file storage, UI and
+injector off. Secrets are delivered by Vault Secrets Operator, not by sidecars.
+
+This chart reads **no** secret (FR-056): a cold rebuild installs Vault before anything that could
+need it. A policy check fails the build if a bootstrap chart declares a secret reference.
+
+## Storage, backup and restore
+
+- Data lives on the `data-vault-0` PVC (`local-path`, 1Gi, ReadWriteOnce), created by the
+  StatefulSet's volume claim template and therefore **not deleted by `helm uninstall`**.
+- Back up by stopping writes and copying the PVC's directory on the node
+  (`/var/lib/rancher/k3s/storage/pvc-*_vault_data-vault-0`), or snapshot the node's disk. Restore
+  by placing that directory back before starting the pod, then unseal.
+- The unseal key and root token are written by `bootstrap/vault-init.sh` to
+  `~/.hl-helm/vault-init.json`, outside the repository. **Back that file up away from this
+  cluster.** Without it a restarted Vault cannot be unsealed and its data is unreadable.
+- A restarted Vault is sealed. Probes accept the sealed state so the pod is reachable; run
+  `bootstrap/vault-init.sh` to unseal. Workloads already running keep their Kubernetes Secrets.
+
+## Deviation from the constitution
+
+None. (Licence note: Vault is BUSL; homelab use is non-competing. OpenBao is a values-level swap.)
+
+{{ template "chart.valuesSection" . }}

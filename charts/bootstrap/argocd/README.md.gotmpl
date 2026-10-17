@@ -1,0 +1,13 @@
+# {{ template "chart.name" . }}
+
+Argo CD wrapper chart, installed **last** by `bootstrap/install.sh`. It reconciles the application tier only (`charts/apps/*`) through `argocd/applicationset.yaml`; bootstrap and infrastructure charts are never managed by it, so a merge cannot restart a data service.
+
+## Storage, backup and restore
+
+Stateless: Argo CD's state is derived from this repository. Nothing to back up. A repository credential, when supplied, lives only in the `hl-helm-repo` Secret.
+
+## Deviation from the constitution
+
+None. Pins upstream chart `argo-cd` 10.10.5.
+
+{{ template "chart.valuesSection" . }}

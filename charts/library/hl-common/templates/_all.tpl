@@ -15,6 +15,7 @@ Helm cannot test whether a template exists, hence the explicit opt-in flag.
 {{- end -}}
 
 {{- define "hl-common.all" -}}
+{{- include "hl-common.placeholders" .root -}}
 {{- $v := fromYaml (include "hl-common.build" .) -}}
 {{- $ctx := dict "root" .root "name" .name "v" $v -}}
 {{- $parts := list -}}

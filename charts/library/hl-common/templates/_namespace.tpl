@@ -10,6 +10,7 @@ claims that name, as CloudNativePG does for a Cluster), and createNamespace (def
 `helm --create-namespace` set it false and render only the service account and VaultAuth).
 */}}
 {{- define "hl-common.namespace" -}}
+{{- include "hl-common.placeholders" . -}}
 {{- $va := default dict .Values.vaultAuth -}}
 {{- $name := .Release.Namespace -}}
 {{- if ne false $va.createNamespace }}
