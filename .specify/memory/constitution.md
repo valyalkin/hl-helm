@@ -1,18 +1,18 @@
 <!--
 Sync Impact Report
-Version change: none (unfilled template) → 1.0.0
-Bump rationale: Initial ratification; all placeholder tokens replaced with concrete governance.
+Version change: 1.0.0 → 2.0.0
+Bump rationale: MAJOR. Principle III is redefined — the human review of a rendered diff moves
+  from apply time to a per-tier gate — and the Development Workflow's tagged-commit rule is
+  removed. Both change what compliance means, so this is a redefinition rather than expanded
+  guidance.
 Modified principles:
-  [PRINCIPLE_1_NAME] → I. Declarative Infrastructure as Code (NON-NEGOTIABLE)
-  [PRINCIPLE_2_NAME] → II. Chart-Per-Workload, Shared Library Chart
-  [PRINCIPLE_3_NAME] → III. Validate Before Apply (NON-NEGOTIABLE)
-  [PRINCIPLE_4_NAME] → IV. Environment Parity Through Values
-  [PRINCIPLE_5_NAME] → V. Secrets Are Never Plaintext
-  [PRINCIPLE_6_NAME] → VI. Idempotent, Reversible Releases
-  [PRINCIPLE_7_NAME] → VII. Homelab Simplicity (YAGNI)
-Added sections:
-  Platform Constraints (k3s homelab baseline)
-  Development Workflow & Quality Gates
+  I. Declarative Infrastructure as Code — clarified that applying a checked-in script or values
+     file is declarative; only unrecorded changes are imperative
+  III. Validate Before Apply — human review relocated per tier; validation chain unchanged
+Modified sections:
+  Development Workflow & Quality Gates — tagged-commit rule replaced with a per-tier deployment
+     rule; added infrastructure upgrade procedure and the drift-detection caveat
+Added sections: none
 Removed sections: none
 Deferred items: none
 -->
@@ -26,8 +26,10 @@ single-node k3s Linux server.
 
 ### I. Declarative Infrastructure as Code (NON-NEGOTIABLE)
 
-Every cluster resource MUST originate from a chart committed to this repository. Imperative
-changes (`kubectl edit`, `kubectl create`, dashboard edits, manual `helm install --set` for
+Every cluster resource MUST originate from a chart committed to this repository. A change
+applied by running a checked-in script against checked-in values is declarative and permitted —
+what the repository records is what the cluster gets, regardless of which mechanism applies it.
+Unrecorded changes (`kubectl edit`, `kubectl create`, dashboard edits, `helm install --set` for
 anything but a one-off debug session) are NOT a source of truth and MUST be reconciled back into
 the repository or reverted within the same working session.
 
@@ -48,11 +50,25 @@ change a one-line edit.
 
 No chart change reaches the cluster until, in order: `helm lint` passes, `helm template` renders
 without error, the rendered output is schema-validated against the target Kubernetes version, and
-`helm diff upgrade` (or `--dry-run`) has been reviewed by a human. Every chart MUST ship a
-`values.schema.json` so invalid values fail at render time, not at runtime.
+a rendered diff has been reviewed by a human. Every chart MUST ship a `values.schema.json` so
+invalid values fail at render time, not at runtime.
 
-Rationale: The homelab has no staging cluster. Rendering and schema validation are the only
-pre-production gate that exists.
+Where that human review happens depends on how the component is applied, and every component MUST
+have exactly one of these gates:
+
+- **Continuously reconciled components** (those a deployment agent applies automatically): the
+  diff MUST be rendered by CI into the change proposal and reviewed before merge. Merging is
+  deploying, so the merge is the gate.
+- **Explicitly applied components** (those an operator applies by command): `helm diff upgrade`
+  MUST be reviewed immediately before applying. The apply is the gate.
+
+A component that is both auto-applied and has no pre-merge diff rendered is in violation.
+
+Rationale: The homelab has no staging cluster, so rendering and schema validation are the only
+pre-production checks that exist, and a human MUST see the diff before it becomes real. Fixing
+the review at apply time would forbid continuous reconciliation outright; fixing it at merge time
+would waive review for the components where a mistake is least recoverable. Tying the gate to the
+apply mechanism keeps a human in the loop for both without forcing one mechanism on everything.
 
 ### IV. Environment Parity Through Values
 
@@ -116,8 +132,19 @@ maintain.
   `ci/` directory, and schema validation of the rendered output. A red gate blocks merge.
 - Each chart MUST include a README documenting purpose, every value, storage and backup
   expectations, and any deviation from these principles with its justification.
-- Deploys to the cluster are made from a tagged commit on `main`; ad-hoc deploys from a working
-  tree are permitted only for debugging and MUST be rolled back or merged the same session.
+- How a component reaches the cluster MUST be determined by its tier and recorded in the
+  repository. Continuously reconciled components track `main`, so a merge deploys them. Explicitly
+  applied components — the secret store and every stateful data service — reach the cluster only
+  by an operator running the checked-in bootstrap command, never by a merge alone.
+- An upgrade to an explicitly applied component MUST be reviewed with `helm diff upgrade` against
+  the running release immediately before it is applied, and MUST be applied from a committed
+  state, never from an uncommitted working tree.
+- Ad-hoc deploys from a working tree are permitted only for debugging and MUST be rolled back or
+  merged the same session.
+- Components outside continuous reconciliation have no automatic drift detection. The rebuild
+  procedure MUST therefore be exercised on a disposable cluster regularly, not only during an
+  incident, since that exercise is the only thing that proves the repository still matches
+  reality.
 - A chart that has not been rendered in CI for a Kubernetes version bump is considered unverified
   and MUST NOT be upgraded in place.
 
@@ -137,4 +164,4 @@ Compliance is reviewed at every merge against the quality gates above, and re-re
 whenever the k3s version is upgraded. Runtime agent guidance lives in `CLAUDE.md` and MUST stay
 consistent with this document; where they conflict, this document wins.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-16 | **Last Amended**: 2026-10-16
+**Version**: 2.0.0 | **Ratified**: 2026-10-16 | **Last Amended**: 2026-10-16
