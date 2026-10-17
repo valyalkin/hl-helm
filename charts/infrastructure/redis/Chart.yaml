@@ -1,0 +1,10 @@
+apiVersion: v2
+name: redis
+description: Redis cache, no persistence. An accelerator rather than a system of record — consumers should declare it optional.
+type: application
+version: 0.1.0
+appVersion: "8"
+dependencies:
+  - name: hl-common
+    version: "~0.1.0"
+    repository: "file://../../library/hl-common"

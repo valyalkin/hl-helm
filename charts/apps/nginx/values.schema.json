@@ -236,6 +236,32 @@
     },
     "hl-common": {
       "type": "object"
+    },
+    "vaultAuth": {
+      "type": "object",
+      "properties": {
+        "mount": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "audiences": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "connectionRef": {
+          "type": "string"
+        },
+        "createNamespace": {
+          "type": "boolean"
+        },
+        "serviceAccount": {
+          "type": "string"
+        }
+      }
     }
   }
 }

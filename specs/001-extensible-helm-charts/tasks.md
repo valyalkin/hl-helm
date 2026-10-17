@@ -121,20 +121,20 @@ each deployable and verifiable before any application exists.
 **Independent Test**: Deploy each infrastructure chart alone to an empty k3d cluster and confirm it
 comes up healthy with durable storage and no manual setup step.
 
-- [ ] T038 [P] [US3] Implement `charts/library/hl-common/templates/_storage.tpl` — explicit `storageClassName` required, retained claims by default (FR-080)
-- [ ] T039 [P] [US3] Implement `charts/library/hl-common/templates/_namespace.tpl` — `hl-common.namespace` rendering the Namespace, its ServiceAccount and its VSO `VaultAuth` for one application (FR-040, FR-041)
-- [ ] T040 [P] [US3] Implement `charts/library/hl-common/templates/_secrets.tpl` — render a `VaultStaticSecret` per secret reference, with `refreshAfter` and `rolloutRestartTargets` (FR-026, FR-028)
-- [ ] T041 [P] [US3] Wire `image.pullSecret` in `charts/library/hl-common/templates/_image.tpl` to a VSO-materialised secret, so a private ghcr.io namespace works without a committed credential (FR-024)
-- [ ] T042 [US3] Create the Vault wrapper chart `charts/bootstrap/vault/` pinning chart `vault` 0.34.1, standalone mode, file storage on a retained PVC, with no secret reference of its own (FR-056)
-- [ ] T043 [P] [US3] Create the VSO wrapper chart `charts/infrastructure/vault-secrets-operator/` pinning chart `vault-secrets-operator` 1.6.0
-- [ ] T044 [P] [US3] Create the CNPG operator wrapper chart `charts/infrastructure/cloudnative-pg/` pinning chart `cloudnative-pg` 0.29.1
-- [ ] T045 [US3] Create `charts/infrastructure/postgres/` rendering a CNPG `Cluster` with retained storage, and a values-driven list of per-application databases and roles so adding an application's database is a values change (FR-078) (**depends on T005 confirming Kubernetes 1.31+**)
-- [ ] T046 [P] [US3] Create `charts/infrastructure/redis/` built on `hl-common` using a digest-pinned `redis:8-alpine`, no persistence (research R-005)
-- [ ] T047 [P] [US3] Add `values.schema.json` to each infrastructure chart
-- [ ] T048 [P] [US3] Add `ci/` values fixtures to each infrastructure chart for render testing
-- [ ] T049 [US3] Document storage and backup/restore expectations in each stateful chart's README — `charts/bootstrap/vault/README.md` and `charts/infrastructure/postgres/README.md` (FR-065)
-- [ ] T050 [US3] Verify each chart under `charts/infrastructure/` and `charts/bootstrap/vault/` installs standalone on k3d with no application present (SC-034)
-- [ ] T051 [US3] Verify data survives a chart delete and redeploy for `charts/infrastructure/postgres` (SC-022, US3 acceptance scenario 4)
+- [X] T038 [P] [US3] Implement `charts/library/hl-common/templates/_storage.tpl` — explicit `storageClassName` required, retained claims by default (FR-080)
+- [X] T039 [P] [US3] Implement `charts/library/hl-common/templates/_namespace.tpl` — `hl-common.namespace` rendering the Namespace, its ServiceAccount and its VSO `VaultAuth` for one application (FR-040, FR-041)
+- [X] T040 [P] [US3] Implement `charts/library/hl-common/templates/_secrets.tpl` — render a `VaultStaticSecret` per secret reference, with `refreshAfter` and `rolloutRestartTargets` (FR-026, FR-028)
+- [X] T041 [P] [US3] Wire `image.pullSecret` in `charts/library/hl-common/templates/_image.tpl` to a VSO-materialised secret, so a private ghcr.io namespace works without a committed credential (FR-024)
+- [X] T042 [US3] Create the Vault wrapper chart `charts/bootstrap/vault/` pinning chart `vault` 0.34.1, standalone mode, file storage on a retained PVC, with no secret reference of its own (FR-056)
+- [X] T043 [P] [US3] Create the VSO wrapper chart `charts/infrastructure/vault-secrets-operator/` pinning chart `vault-secrets-operator` 1.6.0
+- [X] T044 [P] [US3] Create the CNPG operator wrapper chart `charts/infrastructure/cloudnative-pg/` pinning chart `cloudnative-pg` 0.29.1
+- [X] T045 [US3] Create `charts/infrastructure/postgres/` rendering a CNPG `Cluster` with retained storage, and a values-driven list of per-application databases and roles so adding an application's database is a values change (FR-078) (**depends on T005 confirming Kubernetes 1.31+**)
+- [X] T046 [P] [US3] Create `charts/infrastructure/redis/` built on `hl-common` using a digest-pinned `redis:8-alpine`, no persistence (research R-005)
+- [X] T047 [P] [US3] Add `values.schema.json` to each infrastructure chart
+- [X] T048 [P] [US3] Add `ci/` values fixtures to each infrastructure chart for render testing
+- [X] T049 [US3] Document storage and backup/restore expectations in each stateful chart's README — `charts/bootstrap/vault/README.md` and `charts/infrastructure/postgres/README.md` (FR-065)
+- [X] T050 [US3] Verify each chart under `charts/infrastructure/` and `charts/bootstrap/vault/` installs standalone on k3d with no application present (SC-034)
+- [X] T051 [US3] Verify data survives a chart delete and redeploy for `charts/infrastructure/postgres` (SC-022, US3 acceptance scenario 4)
 
 **Checkpoint**: Every dependency is a chart. No manual setup remains.
 
@@ -148,14 +148,14 @@ left ready for a real service to consume. No application chart contains its depe
 **Independent Test**: Delete and redeploy an application repeatedly while confirming the
 dependency's uptime is unbroken and its data intact.
 
-- [ ] T052 [US6] Implement the dependency-reference surface in `charts/library/hl-common/values.yaml` and `_secrets.tpl` — `host`, `port`, `credentials`, `optional`, supplied as configuration and never assembled from another chart's naming (FR-069, FR-081)
-- [ ] T053 [US6] Add `charts/apps/nginx/templates/namespace.yaml` calling `hl-common.namespace`, so the application chart renders its own namespace, service account and VaultAuth (FR-051)
-- [ ] T054 [US6] Provision per-application databases, roles, and Vault credentials in `charts/infrastructure/postgres/`, so a future service finds the dependency ready (FR-078)
-- [ ] T055 [P] [US6] Provision the cache credential in Vault from `charts/infrastructure/redis/`, and support declaring it `optional: true` (FR-079, FR-082)
-- [ ] T056 [P] [US6] Document connection details — address, port, secret path, and the values key a consumer sets — in `charts/infrastructure/postgres/README.md` and `charts/infrastructure/redis/README.md` (FR-080)
-- [ ] T057 [P] [US6] Write a unit test in `tests/unit/dependency_reference_test.yaml` rendering a chart that declares both a required and an optional dependency, asserting correct env and readiness output without a real consumer (FR-081)
-- [ ] T058 [US6] Verify dependency survival: delete and redeploy `charts/apps/nginx/` 10 times on k3d, confirming `charts/infrastructure/postgres/` uptime and data are untouched (SC-031)
-- [ ] T059 [US6] Verify independent upgrade: bump the image in `charts/infrastructure/redis/values.yaml` and confirm no pod from `charts/apps/` is recreated (SC-032)
+- [X] T052 [US6] Implement the dependency-reference surface in `charts/library/hl-common/values.yaml` and `_secrets.tpl` — `host`, `port`, `credentials`, `optional`, supplied as configuration and never assembled from another chart's naming (FR-069, FR-081)
+- [X] T053 [US6] Add `charts/apps/nginx/templates/namespace.yaml` calling `hl-common.namespace`, so the application chart renders its own namespace, service account and VaultAuth (FR-051)
+- [X] T054 [US6] Provision per-application databases, roles, and Vault credentials in `charts/infrastructure/postgres/`, so a future service finds the dependency ready (FR-078)
+- [X] T055 [P] [US6] Provision the cache credential in Vault from `charts/infrastructure/redis/`, and support declaring it `optional: true` (FR-079, FR-082)
+- [X] T056 [P] [US6] Document connection details — address, port, secret path, and the values key a consumer sets — in `charts/infrastructure/postgres/README.md` and `charts/infrastructure/redis/README.md` (FR-080)
+- [X] T057 [P] [US6] Write a unit test in `tests/unit/dependency_reference_test.yaml` rendering a chart that declares both a required and an optional dependency, asserting correct env and readiness output without a real consumer (FR-081)
+- [X] T058 [US6] Verify dependency survival: delete and redeploy `charts/apps/nginx/` 10 times on k3d, confirming `charts/infrastructure/postgres/` uptime and data are untouched (SC-031)
+- [X] T059 [US6] Verify independent upgrade: bump the image in `charts/infrastructure/redis/values.yaml` and confirm no pod from `charts/apps/` is recreated (SC-032)
 
 **Checkpoint**: Application rollbacks no longer put data at risk.
 

@@ -22,5 +22,7 @@ Helm cannot test whether a template exists, hence the explicit opt-in flag.
 {{- $parts = append $parts (include "hl-common.section" (dict "ctx" $ctx "section" "service")) -}}
 {{- if $v.ingress.enabled }}{{ $parts = append $parts (include "hl-common.section" (dict "ctx" $ctx "section" "ingress")) }}{{ end -}}
 {{- if include "hl-common.hasConfig" $ctx }}{{ $parts = append $parts (include "hl-common.section" (dict "ctx" $ctx "section" "config")) }}{{ end -}}
+{{- if or $v.secrets $v.dependencies }}{{ $sec := include "hl-common.allSecrets" $ctx | fromYaml }}{{ if $sec }}{{ $parts = append $parts (include "hl-common.section" (dict "ctx" $ctx "section" "secrets")) }}{{ end }}{{ end -}}
+{{- if $v.storage.enabled }}{{ $parts = append $parts (include "hl-common.section" (dict "ctx" $ctx "section" "pvc")) }}{{ end -}}
 {{- join "\n---\n" $parts -}}
 {{- end -}}

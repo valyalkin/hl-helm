@@ -1,0 +1,28 @@
+suite: application namespace
+templates: [templates/namespace.yaml]
+release: {name: todo, namespace: todo}
+set:
+  renderNamespace: true
+tests:
+  - it: renders the namespace, service account and VaultAuth for one application
+    asserts:
+      - hasDocuments: {count: 3}
+      - equal: {path: metadata.name, value: todo, }
+        documentIndex: 0
+      - equal: {path: kind, value: ServiceAccount}
+        documentIndex: 1
+      - equal: {path: automountServiceAccountToken, value: false}
+        documentIndex: 1
+      - equal: {path: kind, value: VaultAuth}
+        documentIndex: 2
+      - equal: {path: spec.kubernetes.role, value: apps}
+        documentIndex: 2
+      - equal: {path: spec.kubernetes.serviceAccount, value: todo}
+        documentIndex: 2
+      - equal: {path: metadata.namespace, value: todo}
+        documentIndex: 2
+  - it: renders no Namespace when the chart is installed with --create-namespace
+    set:
+      vaultAuth: {createNamespace: false}
+    asserts:
+      - hasDocuments: {count: 2}

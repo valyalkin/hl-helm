@@ -1,0 +1,43 @@
+# Values for the upstream `vault` chart 0.34.1 live under the `vault:` key.
+vault:
+  global:
+    enabled: true
+  injector:
+    enabled: false          # secrets are delivered by Vault Secrets Operator, not sidecars
+  server:
+    image:
+      repository: hashicorp/vault
+      tag: "2.0.4"
+    resources:
+      requests: {cpu: 50m, memory: 128Mi}
+      limits: {memory: 256Mi}
+    standalone:
+      enabled: true
+      config: |
+        ui = true
+        listener "tcp" {
+          tls_disable = 1
+          address = "[::]:8200"
+          cluster_address = "[::]:8201"
+        }
+        storage "file" {
+          path = "/vault/data"
+        }
+    dataStorage:
+      enabled: true
+      size: 1Gi
+      storageClass: local-path     # explicit; the cluster default is never relied on
+      accessMode: ReadWriteOnce
+    auditStorage:
+      enabled: false
+    readinessProbe:
+      enabled: true
+      # Sealed Vault answers 503 on the default probe; accept it so a restarted pod is Ready
+      # (and reachable for unsealing) rather than stuck NotReady.
+      path: "/v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204"
+    livenessProbe:
+      enabled: true
+      path: "/v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204"
+      initialDelaySeconds: 60
+  ui:
+    enabled: false

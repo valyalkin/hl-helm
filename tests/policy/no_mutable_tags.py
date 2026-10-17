@@ -33,6 +33,9 @@ failures = []
 for tier, d in charts(("bootstrap", "infrastructure", "apps")):
     for fx in fixtures(d):
         for doc in yaml.safe_load_all(render(d, fx)):
+            hook = (((doc or {}).get("metadata") or {}).get("annotations") or {}).get("helm.sh/hook", "")
+            if "test" in hook:  # `helm test` pods never run on install or upgrade
+                continue
             for ref in images(doc or {}):
                 if mutable(ref):
                     failures.append(f"{rel(d)}: image {ref!r} uses a mutable tag")

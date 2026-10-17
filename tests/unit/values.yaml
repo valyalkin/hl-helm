@@ -9,3 +9,6 @@ services:
 
 extension:
   cronjob: null
+
+renderNamespace: false
+vaultAuth: {}

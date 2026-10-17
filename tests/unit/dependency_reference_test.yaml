@@ -1,0 +1,43 @@
+suite: dependency references
+templates: [templates/all.yaml]
+release: {name: demo}
+set:
+  services.web.dependencies:
+    postgres:
+      host: postgres-rw.postgres.svc.cluster.local
+      port: 5432
+      credentials: {vaultPath: apps/demo/postgres, keys: {password: POSTGRES_PASSWORD}}
+    redis:
+      host: redis.redis.svc.cluster.local
+      port: 6379
+      optional: true
+tests:
+  - it: injects host, port and optionality as configuration, never derived
+    documentSelector: {path: kind, value: Deployment}
+    asserts:
+      - contains:
+          path: 'spec.template.spec.containers[0].env'
+          content: {name: POSTGRES_HOST, value: postgres-rw.postgres.svc.cluster.local}
+      - contains:
+          path: 'spec.template.spec.containers[0].env'
+          content: {name: POSTGRES_OPTIONAL, value: "false"}
+      - contains:
+          path: 'spec.template.spec.containers[0].env'
+          content: {name: REDIS_OPTIONAL, value: "true"}
+      - contains:
+          path: 'spec.template.spec.containers[0].env'
+          content: {name: REDIS_PORT, value: "6379"}
+  - it: records which dependencies are required and which are optional
+    documentSelector: {path: kind, value: Deployment}
+    asserts:
+      - equal: {path: 'spec.template.metadata.annotations["hl-common/dependency.postgres"]', value: required}
+      - equal: {path: 'spec.template.metadata.annotations["hl-common/dependency.redis"]', value: optional}
+  - it: renders the required dependency's credentials as a VaultStaticSecret
+    documentSelector: {path: kind, value: VaultStaticSecret}
+    asserts:
+      - equal: {path: spec.path, value: apps/demo/postgres}
+  - it: fails naming the host when a dependency has none
+    set:
+      services.web.dependencies.redis.host: ""
+    asserts:
+      - failedTemplate: {errorPattern: "web.dependencies.redis.host"}

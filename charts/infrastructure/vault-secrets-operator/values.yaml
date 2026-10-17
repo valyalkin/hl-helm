@@ -1,0 +1,13 @@
+# Values for the upstream `vault-secrets-operator` chart 1.6.0 live under the same key.
+vault-secrets-operator:
+  controller:
+    manager:
+      resources:
+        requests: {cpu: 10m, memory: 64Mi}
+        limits: {memory: 128Mi}
+  defaultVaultConnection:
+    enabled: true
+    # Supplied, never derived (FR-069). VaultAuth resources in application namespaces use this
+    # connection by default.
+    address: http://vault.vault.svc.cluster.local:8200
+    skipTLSVerify: false

@@ -6,13 +6,17 @@ context, config and tmp mounts. Used by hl-common.workload and available to cust
 {{- define "hl-common.podSpec" -}}
 {{- $w := .v.workload -}}
 {{- $hasCfg := include "hl-common.hasConfig" . -}}
+{{- $st := .v.storage -}}
 serviceAccountName: {{ default .root.Release.Name $w.serviceAccountName }}
 automountServiceAccountToken: {{ $w.automountServiceAccountToken }}
 securityContext:
   {{- toYaml (default (dict "runAsNonRoot" true "runAsUser" 10001 "runAsGroup" 10001 "fsGroup" 10001 "seccompProfile" (dict "type" "RuntimeDefault")) $w.podSecurityContext) | nindent 2 }}
 {{- with $w.image.pullSecret }}
+{{- if not (hasKey (default dict $.v.secrets) .) }}
+{{- include "hl-common.fail" (printf "%s.workload.image.pullSecret %q must name an entry in %s.secrets" $.name . $.name) }}
+{{- end }}
 imagePullSecrets:
-  - name: {{ . }}
+  - name: {{ include "hl-common.secretName" (dict "ctx" $ "name" .) }}
 {{- end }}
 containers:
   - name: {{ default .root.Release.Name .name }}
@@ -34,14 +38,15 @@ containers:
         containerPort: {{ default .port .targetPort }}
         protocol: {{ default "TCP" .protocol }}
       {{- end }}
-    {{- with $w.env }}
+    {{- $env := concat (default list $w.env) (fromYamlArray (include "hl-common.secretEnv" .)) }}
+    {{- if $env }}
     env:
-      {{- toYaml . | nindent 6 }}
+      {{- toYaml $env | nindent 6 }}
     {{- end }}
     {{- include "hl-common.probes" . | nindent 4 }}
     resources:
       {{- include "hl-common.resources" . | nindent 6 }}
-    {{- if or $hasCfg $w.tmpDirs }}
+    {{- if or $hasCfg $w.tmpDirs $st.enabled }}
     volumeMounts:
       {{- if $hasCfg }}
       - name: config
@@ -52,8 +57,12 @@ containers:
       - name: tmp-{{ $i }}
         mountPath: {{ $d }}
       {{- end }}
+      {{- if $st.enabled }}
+      - name: data
+        mountPath: {{ $st.mountPath }}
+      {{- end }}
     {{- end }}
-{{- if or $hasCfg $w.tmpDirs }}
+{{- if or $hasCfg $w.tmpDirs $st.enabled }}
 volumes:
   {{- if $hasCfg }}
   - name: config
@@ -63,6 +72,11 @@ volumes:
   {{- range $i, $d := $w.tmpDirs }}
   - name: tmp-{{ $i }}
     emptyDir: {}
+  {{- end }}
+  {{- if $st.enabled }}
+  - name: data
+    persistentVolumeClaim:
+      claimName: {{ include "hl-common.fullname" . }}-data
   {{- end }}
 {{- end }}
 {{- end -}}
