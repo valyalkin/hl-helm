@@ -58,7 +58,7 @@ scripts/validate.sh --self-test
 ```
 
 Deliberately injects each of: a mutable image tag, a missing `limits.memory`, an unchanged
-scaffold placeholder, a duplicate ingress host, a secret-shaped literal, and an application chart
+unchanged placeholder, a duplicate ingress host, a secret-shaped literal, and an application chart
 depending on an infrastructure chart. **Expected**: six failures, each naming the offending file
 and value (SC-006, SC-007, SC-008, SC-033).
 
@@ -84,7 +84,7 @@ kubectl -n argocd get applications -w
 ```
 
 **Expected**: applications appear and sync in wave order — Argo CD, Vault, then VSO and the CNPG
-operator, then Postgres and Redis, then backend and frontend.
+operator, then Postgres and Redis, then the nginx reference service.
 
 ---
 
@@ -98,7 +98,7 @@ kubectl -n vault exec -it vault-0 -- vault operator unseal <key>
 ```
 
 **Expected**: Vault unsealed. **Store the unseal key and root token outside the cluster now** — a
-password manager, not this repository. Then seed the pilot secrets and the Kubernetes auth role
+password manager, not this repository. Then seed the database and cache secrets and the Kubernetes auth role
 per `docs/bootstrap.md`.
 
 **Verify the tier rule** (FR-050): the bootstrap tier came up *before* this step, confirming
@@ -120,24 +120,28 @@ sync carries the discrepancy.
 
 ---
 
-## Step 5 — Prove the round trip
+## Step 5 — Prove the stack is ready for real services
 
-Proves SC-020.
+Proves SC-020 and SC-036.
 
 ```bash
-curl -kI https://<frontend-host>/
+curl -kI https://<nginx-host>/                                   # reference service reachable
+kubectl -n database get cluster postgres -o jsonpath='{.status.readyInstances}'
+kubectl -n cache get pods -l app=redis
 ```
 
-Then exercise a write and a read through the UI or the backend's API.
+Then confirm each dependency is genuinely consumable, which is the point of this delivery:
 
-**Expected**: the frontend loads, a write reaches Postgres, and a subsequent read returns it.
+```bash
+# The application database and role exist, and the credential is in Vault.
+kubectl -n database exec -it postgres-1 -- psql -U postgres -c '\du'
+kubectl -n vault exec -it vault-0 -- vault kv get secret/database/app
+```
 
-> **Requires the pilot images.** The frontend and backend images are provided by the operator and
-> published to ghcr.io; writing those applications remains out of scope for this feature. The
-> charts need three facts about each image before this step can run: the exposed port, the health
-> endpoint paths for liveness and readiness, and the environment variable names the application
-> reads for its backend address and database credentials. Capture them when the images land —
-> they are the inputs to `charts/apps/*/values.yaml`.
+**Expected**: nginx serves over TLS; Postgres reports its instance ready with the application
+database and role present; Redis responds; and both credentials resolve in Vault. At that point a
+real service can be added by copying `charts/apps/nginx/` and pointing it at these addresses —
+with no change to any infrastructure chart.
 
 ---
 
@@ -148,8 +152,8 @@ Proves SC-031, SC-032, SC-034 — the requirements most easily lost in implement
 ```bash
 # Applications come and go; dependencies do not notice.
 for i in $(seq 1 10); do
-  kubectl -n apps delete deployment backend
-  argocd app sync backend --timeout 120
+  kubectl -n apps delete deployment nginx
+  argocd app sync nginx --timeout 120
 done
 kubectl -n database get cluster postgres -o jsonpath='{.status.readyInstances}'
 ```
@@ -160,7 +164,7 @@ kubectl -n database get cluster postgres -o jsonpath='{.status.readyInstances}'
 ```bash
 # A dependency upgrade leaves applications alone.
 # Bump the Redis image in charts/infrastructure/redis, merge, then:
-kubectl -n apps get pods -l app=backend -o jsonpath='{.items[*].metadata.creationTimestamp}'
+kubectl -n apps get pods -l app=nginx -o jsonpath='{.items[*].metadata.creationTimestamp}'
 ```
 
 **Expected**: unchanged timestamps — no application was redeployed (SC-032).
@@ -180,11 +184,11 @@ Proves SC-016 and FR-028.
 
 ```bash
 # Rotate in Vault, then watch the consumer.
-kubectl -n apps get pods -l app=backend -w
+kubectl -n apps get pods -l app=nginx -w
 ```
 
-**Expected**: the `VaultStaticSecret` refreshes within `refreshAfter`, and the backend is
-restarted automatically by VSO's rollout target. No chart changed.
+**Expected**: the `VaultStaticSecret` refreshes within `refreshAfter`, and the consuming
+workload is restarted automatically by VSO's rollout target. No chart changed.
 
 ---
 
@@ -193,9 +197,9 @@ restarted automatically by VSO's rollout target. No chart changed.
 Proves SC-015 and FR-031.
 
 ```bash
-kubectl -n apps scale deployment backend --replicas=5
+kubectl -n apps scale deployment nginx --replicas=5
 sleep 60
-kubectl -n apps get deployment backend -o jsonpath='{.spec.replicas}'
+kubectl -n apps get deployment nginx -o jsonpath='{.spec.replicas}'
 ```
 
 **Expected**: back to the repository's value, with the drift reported in Argo CD.
@@ -213,7 +217,7 @@ beyond the guide.
 lookups outside the guide (SC-025).
 
 ```bash
-# The copied scaffold inherited conventions rather than copying them.
+# The copied chart inherited conventions rather than copying them.
 # Change a default in hl-common, then:
 helm template charts/apps/<new-service> | grep -A3 'resources:'
 ```

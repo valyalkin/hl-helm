@@ -25,6 +25,11 @@ ingress:             # see data-model.md § Ingress
 storage:             # see data-model.md § Storage
   enabled: false
 
+config:              # see data-model.md § Configuration
+  values: {}         # structured settings rendered by the chart
+  files: []          # whole files carried verbatim from the chart's files/
+  restartOnChange: true
+
 secrets:             # map of logical name → Secret reference
   {}
 
@@ -41,9 +46,11 @@ Validation fails at render time, before anything reaches the cluster, when:
 | A required value is unset | The value's path |
 | `resources.limits.memory` is unset | The value's path — there is no default |
 | An image resolves to a mutable tag | The chart and the offending reference |
-| A scaffold placeholder is unchanged | The placeholder's parameter |
+| A reference-chart placeholder is unchanged | The placeholder's parameter |
 | An ingress host collides with another chart's | Both charts |
 | A bootstrap-tier chart declares `secrets` | The chart and the tier rule |
+| The same key appears in `config.values` and `config.files` | The duplicated key |
+| `config` contains secret-shaped material | The offending key |
 | A referenced Vault path is absent | The path (at sync time; render cannot know) |
 
 Failures must be render-time wherever the information exists at render time. The last row is the

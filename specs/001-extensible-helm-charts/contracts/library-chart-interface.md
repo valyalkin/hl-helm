@@ -15,6 +15,7 @@ here is a breaking change to every chart (major version bump, migration note per
 | `hl-common.service` | Service | Ports from `.Values.service.ports` |
 | `hl-common.ingress` | Ingress | TLS stanza always emitted (R-008) |
 | `hl-common.secrets` | `VaultStaticSecret` per secret reference | Plus rollout-restart wiring |
+| `hl-common.config` | ConfigMap from `config.values` and `config.files` | Content hashed onto the pod template unless `restartOnChange: false` |
 | `hl-common.pvc` | PersistentVolumeClaim | Only when `.Values.storage.enabled` |
 | `hl-common.serviceaccount` | ServiceAccount | Plus the VSO `VaultAuth` binding |
 
@@ -28,6 +29,7 @@ here is a breaking change to every chart (major version bump, migration note per
 | `hl-common.image` | Fully-qualified image reference | Applies registry/owner defaults, rejects mutable tags |
 | `hl-common.podSpec` | A complete pod spec | For custom controllers (CronJob, Job) that need the standard container |
 | `hl-common.secretEnv` | `env` entries from secret references | For custom workloads |
+| `hl-common.configHash` | Hash of rendered configuration | For custom controllers that must roll on config change |
 | `hl-common.fail` | Render-time error | Used by charts to enforce their own required values |
 
 ## The extension contract (FR-003, FR-004)
@@ -59,6 +61,7 @@ The foundation guarantees that every rendered workload carries, without the char
 - `automountServiceAccountToken: false` unless the workload declares it needs the token
 - A security context with a non-root user and a read-only root filesystem, overridable per chart
   with a documented reason
+- A restart when its configuration changes, unless the chart opts out with a documented reason
 
 ## Versioning
 

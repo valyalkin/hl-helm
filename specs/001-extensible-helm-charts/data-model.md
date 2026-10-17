@@ -116,27 +116,50 @@ address is an input, which is what makes the two lifecycles separable.
 
 Maps to spec entity *Tier*. Not a values field — a property of a chart's location and sync wave.
 
-| Tier | May depend on | Sync wave | Members |
+| Tier | May depend on | Applied by | Members |
 |------|---------------|-----------|---------|
-| `bootstrap` | nothing in-cluster | -10, -5 | Argo CD, Vault |
-| `infrastructure` | bootstrap | 0, 5 | VSO, CNPG operator, Postgres, Redis |
-| `application` | bootstrap, infrastructure | 10, 15 | backend, frontend |
+| `bootstrap` | nothing in-cluster | `bootstrap/install.sh` | Vault, then Argo CD last |
+| `infrastructure` | bootstrap | `bootstrap/install.sh` | VSO, CNPG operator, Postgres, Redis |
+| `application` | bootstrap, infrastructure | Argo CD, auto-sync from `main` | nginx reference chart; real services later |
 
-**Invariant**: no bootstrap-tier chart may contain a Secret reference (FR-050). This is the single
-rule that keeps a cold rebuild from deadlocking, and it is checked in CI.
+**Invariants**: no bootstrap-tier chart may contain a Secret reference (FR-050) — the single rule
+that keeps a cold rebuild from deadlocking. And only an application-tier chart may have an Argo
+CD Application (FR-030); one pointing above `charts/apps/` is a defect. Both are checked in CI.
 
 ---
 
-## Scaffold
+## Configuration
 
-Maps to the onboarding path (FR-040, FR-042).
+Maps to spec entity *Application configuration* (FR-036–FR-038). Rendered as a ConfigMap by
+`hl-common`, with its content hashed into the pod template.
+
+| Field | Type | Required | Default | Rule |
+|-------|------|----------|---------|------|
+| `values` | map | no | `{}` | Structured settings the chart renders into the required format |
+| `files` | list | no | `[]` | Paths under the chart's `files/` carried verbatim into the ConfigMap |
+| `mountPath` | string | yes when set | — | Where the ConfigMap is mounted |
+| `restartOnChange` | bool | no | `true` | Rolls the workload when content changes; `false` requires a documented reason in the chart README |
+
+**Validation**: a chart MUST NOT define the same key in both `values` and `files`. No
+configuration may contain secret material — that belongs in a Secret reference (FR-020).
+
+**State transition**: content change → new hash on the pod template → rolling restart, unless
+`restartOnChange` is false, in which case the mounted file updates in place and the workload is
+expected to notice on its own.
+
+---
+
+## Reference chart
+
+Maps to the onboarding path (FR-040, FR-042). One chart, `charts/apps/nginx/`, serving as both a
+running service and the thing an operator copies.
 
 | Field | Type | Rule |
 |-------|------|------|
-| `shape` | enum | `stateless-web` \| `service-with-deps` \| `stateful-service` |
 | `parameters` | list | Each marked `# REQUIRED:` with purpose and example |
 | `placeholders` | list | Sentinel values that MUST fail validation if left unchanged (FR-043) |
 
-**Validation**: every scaffold renders and validates against the current `hl-common` on every
-change (FR-047), so a foundation change that invalidates a scaffold fails CI rather than an
-operator's afternoon.
+**Validation**: the reference chart renders, validates, and deploys on every change (FR-047), so
+a foundation change that would invalidate a copy fails CI rather than an operator's afternoon.
+Because it is a deployed workload rather than an inert template, staleness is caught by the
+cluster as well as by CI.

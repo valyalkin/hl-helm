@@ -23,8 +23,8 @@ of delegating to upstream documentation.
 
 **Alternatives considered**:
 - `bjw-s/common` + `app-template`: mature, actively maintained, purpose-built for homelabs. Its
-  surface is considerably larger than three pilot charts need, and its schema would become the
-  scaffold's vocabulary. Rejected for ownership of defaults, not for quality — it remains the
+  surface is considerably larger than this delivery needs, and its schema would become the
+  reference chart's vocabulary. Rejected for ownership of defaults, not for quality — it remains the
   fallback if `hl-common` grows past roughly 400 lines of template without earning it.
 - No library chart, conventions by copy-paste: directly violates Principle II and FR-003.
 - A chart generator producing full charts: generated charts stop receiving convention changes,
@@ -121,7 +121,7 @@ on `hl-common`, with no persistence.
 of record (FR-078), so none of the HA, Sentinel, or operator-based options earn their complexity.
 Deploying it from `hl-common` is also the cleanest proof that the library handles an
 infrastructure workload, not only applications — directly exercising FR-057's requirement that new
-infrastructure follows the same scaffold path. Redis 8 returned to an OSI-approved licence
+infrastructure follows the same copy-the-reference-chart path. Redis 8 returned to an OSI-approved licence
 (AGPLv3) in 2025, so there is no licensing obstacle.
 
 **Alternatives considered**:
@@ -133,65 +133,62 @@ infrastructure follows the same scaffold path. Redis 8 returned to an OSI-approv
 
 ---
 
-## R-006: Tiers as Argo CD sync waves under an app-of-apps root
+## R-006: Argo CD for the application tier only; a script for everything beneath it
 
-**Decision**: A root `Application` at `argocd/root.yaml` points at `argocd/applications/`, which
-holds one `Application` per chart. Tier membership is expressed as
-`argocd.argoproj.io/sync-wave`: bootstrap `-10` (Argo CD) and `-5` (Vault), infrastructure `0`
-(VSO, CNPG operator) and `5` (Postgres cluster, Redis), applications `10` (backend) and `15`
-(frontend). Directory position under `argocd/applications/<tier>/` must agree with the wave, and
-CI checks that it does (FR-054).
+**Decision**: Argo CD holds one `Application` per chart under `charts/apps/`, discovered by a
+root app-of-apps at `argocd/root.yaml`, syncing automatically from `main` with `selfHeal: true`.
+The bootstrap and infrastructure tiers are **not** in Argo CD. `bootstrap/install.sh` installs
+them with `helm` in dependency order from an explicit, checked-in order file, then installs Argo
+CD last.
 
-**Rationale**: Sync waves give FR-013's ordering without coupling chart lifecycles, and the
-app-of-apps root means adding a service is one new Application manifest (FR-045). Waves order the
-*initial* convergence; FR-067 separately requires applications to tolerate missing dependencies at
-runtime, so ordering is an optimisation rather than a correctness guarantee — which is what keeps
-Argo CD from becoming a dependency manager.
+**Rationale**: The operator's requirement is that a merge must never restart a data service on
+its own. Keeping Vault, VSO, CloudNativePG, Postgres and Redis outside Argo CD makes that
+structural rather than a policy that can be misconfigured — there is no controller that could
+apply them. Dependency ordering, which sync waves would otherwise provide, becomes ordering in a
+shell script, which is easier to read and debug than wave annotations spread across manifests.
+It also removes three awkward problems: Argo CD managing the secret store it does not depend on,
+CRD-ordering between the CNPG operator and the `Cluster` resource, and Argo CD adopting its own
+imperatively installed release.
 
 **Alternatives considered**:
-- ApplicationSet with a directory generator: less boilerplate per service, but per-chart overrides
-  become generator templating, which is harder to read than one explicit manifest per chart.
-  Reconsider once there are more than roughly fifteen charts.
-- Helm subchart dependencies for ordering: couples lifecycles and is explicitly forbidden by
-  FR-060.
-- Argo CD sync phases/hooks: for jobs within a sync, not for tiering across applications.
+- All tiers in Argo CD with sync waves, infrastructure on manual sync: keeps drift *detection*
+  for infrastructure, which this design loses. Rejected by the operator in favour of the simpler
+  boundary; the trade is recorded in the plan.
+- All tiers auto-synced: a merge could restart Postgres. Rejected outright.
+- ApplicationSet with a directory generator over `charts/apps/`: less boilerplate per service,
+  worth reconsidering past roughly fifteen application charts.
+
+**Accepted cost**: nothing watches the infrastructure tiers for out-of-band change. Drift there
+is found by running the rebuild, not by a dashboard. FR-034 is narrowed accordingly, and the
+mitigation is to exercise the rebuild procedure regularly rather than trust it.
 
 ---
 
-## R-007: Bootstrap is one command that installs Argo CD and then steps aside
+## R-007: Bootstrap installs infrastructure, then hands the application tier to Argo CD
 
-**Decision**: `bootstrap/install.sh` performs exactly one imperative action — `helm install argocd`
-from the pinned chart with `bootstrap/argocd-values.yaml` — then applies `argocd/root.yaml`. Argo
-CD thereafter manages its own release from `charts/bootstrap/argocd`, so the imperative install is
-superseded by the declarative one on first reconcile.
+**Decision**: `bootstrap/install.sh` is the single manual command. It reads
+`bootstrap/install-order.yaml` — a pinned list of chart paths and values files — and runs `helm
+upgrade --install` for Vault, the Vault Secrets Operator, CloudNativePG, Postgres and Redis in
+that order, waiting for each to be healthy. It then installs Argo CD from
+`charts/bootstrap/argocd/` with `bootstrap/argocd-values.yaml` and applies `argocd/root.yaml`.
 
-**Rationale**: FR-052 permits exactly one manual command. Having Argo CD adopt its own release
-afterwards satisfies FR-051 and Principle I without a second bootstrap step.
+**Rationale**: FR-052 permits exactly one manual command, and this keeps that promise while
+putting the infrastructure tiers outside continuous reconciliation. Because the same script and
+the same pinned values are used for a rebuild and for day-to-day infrastructure upgrades, the
+rebuild path is exercised by ordinary use rather than only in an emergency.
 
-**Repository access**: Argo CD needs to read this Git repository, and that credential cannot come
-from Vault — Vault is not running yet, and FR-050 forbids the dependency. The repository is
-public, so anonymous read suffices and no credential is required for Argo CD to converge.
+**Infrastructure upgrades** re-run the script, or a single chart from it, after reviewing `helm
+diff upgrade`. That diff review is where Principle III's human gate lives for these tiers.
 
-`bootstrap/install.sh` nonetheless accepts a repository credential as an argument, supplied by the
-operator at invocation:
+**Repository access**: Argo CD needs to read this Git repository. The repository is public, so
+anonymous read suffices. `install.sh` accepts an optional `--repo-credential`, written straight
+into the Argo CD repository Secret and persisted nowhere else, for a future private repository,
+Git write-back, or anonymous rate limits during a cold rebuild. It is never committed and never
+read from Vault, so no bootstrap-tier component depends on the secret store (FR-050).
 
-```bash
-./bootstrap/install.sh --repo-credential <token-or-key-path>
-```
-
-When given, it is written directly into the Argo CD repository Secret and never persisted
-anywhere else. It is never committed, never read from Vault, and never defaulted. This keeps the
-one-command guarantee (FR-052) intact while covering three cases the public-read path does not:
-making the repository private later, Argo CD writing back to Git (image-tag automation), and
-hitting GitHub's anonymous API rate limits during a rebuild that syncs many applications at once.
-
-**Tier rule preserved**: the credential enters as a bootstrap argument, not as a Vault reference,
-so no bootstrap-tier component depends on the secret store (FR-050).
-
-**Unresolved risk**: Argo CD adopting a release created by a direct `helm install` can produce a
-first-sync diff on ownership metadata. Mitigation is to install with the same release name and
-namespace the Application declares, and to verify an empty diff as a bootstrap acceptance step
-(quickstart step 4).
+**Resolved risk**: Argo CD no longer needs to adopt its own imperatively installed release — it
+is installed by the script and is not managed by itself, which removes the first-sync ownership
+diff that the previous design had to verify.
 
 ---
 
@@ -230,7 +227,7 @@ adding a policy engine for four rules fails Principle VII:
 1. No image reference resolves to a mutable tag (FR-021, SC-008).
 2. No chart under `charts/apps/` declares a dependency on an infrastructure chart (FR-060, SC-033).
 3. No file contains secret-shaped material (FR-020, SC-007).
-4. Every scaffold still renders and validates against the current `hl-common` (FR-047, SC-026),
+4. The reference chart still renders and validates against the current `hl-common` (FR-047, SC-026),
    and each `argocd/applications/<tier>/` entry's sync wave matches its tier (FR-054).
 
 **Alternatives considered**: `chart-testing` (`ct`) with a kind cluster — valuable, but installing
@@ -264,3 +261,31 @@ assumption:
 **Rationale**: Principle III's schema validation is only meaningful against the version actually
 running, and the Platform Constraints section of the constitution requires the version to be
 recorded in the README.
+
+---
+
+## R-011: Configuration as ConfigMap, with restart-on-change by default
+
+**Decision**: `hl-common` renders a ConfigMap from two sources — structured values the chart
+renders into the required format, and whole files carried verbatim from the chart's `files/`
+directory. The ConfigMap's content is hashed into a pod-template annotation, so any configuration
+change rolls the workload. A chart may set `config.restartOnChange: false` when its workload
+reloads configuration without a restart, with the reason recorded in its README.
+
+**Rationale**: Kubernetes updates a mounted ConfigMap in place but does not restart the consuming
+pod, so a process that reads its configuration at startup silently keeps serving the old values.
+Nothing appears broken, which makes it an expensive failure to diagnose. Hashing the content into
+the pod template is the standard remedy and makes the restart a property of the foundation rather
+than something each chart author must remember (FR-037).
+
+Verbatim files matter because an `nginx.conf` escaped into YAML values is painful to read, diff
+and edit; carrying the real file keeps the chart readable and lets the operator paste in upstream
+configuration unchanged (FR-038).
+
+**Alternatives considered**:
+- Restart never, operator restarts manually: FR-037 requires the change to reach the workload,
+  and relying on memory is exactly what the foundation exists to avoid.
+- Restart always, no opt-out: simpler, but wrong for a workload that genuinely reloads — and
+  actively undesirable for a database where a log-level change should not cause a bounce.
+- A sidecar config reloader: another component to maintain, for a problem a hash annotation
+  solves in three lines (Principle VII).

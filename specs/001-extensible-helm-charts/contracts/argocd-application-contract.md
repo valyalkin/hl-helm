@@ -2,8 +2,12 @@
 
 **Feature**: 001-extensible-helm-charts | **Date**: 2026-10-16
 
-How a chart becomes a deployed release. One `Application` per chart under
-`argocd/applications/<tier>/<chart>.yaml`, all discovered by the root app-of-apps.
+How an **application** chart becomes a deployed release. One `Application` per chart under
+`argocd/applications/<chart>.yaml`, all discovered by the root app-of-apps.
+
+**Scope**: Argo CD manages `charts/apps/` only. Bootstrap and infrastructure charts have no
+Application and are installed by `bootstrap/install.sh`; an Application pointing at a chart
+outside `charts/apps/` is a defect that CI rejects (research R-006).
 
 ## Required fields
 
