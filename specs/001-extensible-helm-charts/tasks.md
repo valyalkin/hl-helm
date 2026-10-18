@@ -240,7 +240,7 @@ time; make a valid change and confirm the pending diff is shown before merge.
 - [X] T092 [P] Verify a rollback of `charts/infrastructure/postgres/` leaves its persistent data intact (FR-019, SC-010)
 - [X] T093 [P] Add ingress hostname collision detection to `tests/policy/collisions.py`, alongside the US5 policy checks (hostname-collision edge case)
 - [X] T094 Promote the full stack to the server: run `bootstrap/install.sh` against the real k3s node, then Vault init and unseal (quickstart steps 2–4, requires T005)
-- [ ] T095 Verify readiness for real services on the server: nginx reachable over TLS, Postgres and Redis healthy, application database and role present, both credentials resolving in Vault (quickstart step 5, SC-020, SC-036)
+- [X] T095 Verify readiness for real services on the server: nginx reachable over TLS, Postgres and Redis healthy, application database and role present, both credentials resolving in Vault (quickstart step 5, SC-020, SC-036)
 - [X] T096 [P] Record the measured outcome against every success criterion in `docs/validation-results.md`, including the three timings — rebuild duration (SC-005), merge-to-cluster latency (SC-014), and stack-ready duration (SC-020)
 - [X] T097 [P] Write `CLAUDE.md` with runtime agent guidance consistent with the constitution, which Governance already references (constitution.md Governance)
 - [X] T098 [P] Cross-link `README.md`, `docs/onboarding.md`, `docs/bootstrap.md`, and `docs/tiers.md`
