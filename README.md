@@ -13,7 +13,7 @@ truth: the cluster can be rebuilt from an empty node with `bootstrap/install.sh`
 | Application | `charts/apps/` | Argo CD, auto-sync from `main` | one chart per application; `nginx` is the reference |
 
 Start with [`docs/onboarding.md`](docs/onboarding.md) to deploy an application,
-[`docs/bootstrap.md`](docs/bootstrap.md) to rebuild the cluster, and [`docs/tiers.md`](docs/tiers.md)
+[`docs/bootstrap.md`](docs/bootstrap.md) to rebuild the cluster, [`docs/access.md`](docs/access.md) to reach `kubectl`, Vault, Argo CD, Postgres and Redis from your workstation, and [`docs/tiers.md`](docs/tiers.md)
 for what each tier may depend on. Measured results are in
 [`docs/validation-results.md`](docs/validation-results.md).
 
