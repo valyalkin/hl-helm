@@ -5,7 +5,7 @@ procedure, including the one step that needs a human: holding Vault's unseal mat
 
 ## Prerequisites
 
-- A k3s node (Traefik and `local-path` enabled — the k3s defaults) and a kubeconfig for it
+- A k3s node (Traefik and `local-path` enabled — the k3s defaults) and a kubeconfig for it (see [Accessing the cluster](access.md))
 - On your workstation: `helm` 4.x, `kubectl`, `jq`; the `helm-diff` plugin for upgrades
 - This repository checked out at a **committed** state (`install.sh` refuses a dirty tree)
 
