@@ -1,0 +1,33 @@
+cluster:
+  name: postgres                 # stable address: postgres-rw.postgres.svc.cluster.local
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.7@sha256:dab846a58e8ca3c8872584ab2225ee93fb9e659a87c52e163fefae9275b46f51
+  storage:
+    size: 5Gi
+    storageClass: local-path     # explicit; never the cluster default
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {memory: 512Mi}
+
+# One database and one role per application. Adding an application's database is adding a line.
+databases: []                    # e.g. [{name: todo}]
+
+# Seeds kv/apps/<name>/postgres in Vault (username + generated password) before the release
+# starts. Existing credentials are never rotated by a deploy.
+provision:
+  enabled: true
+  vaultAddr: http://vault.vault.svc.cluster.local:8200
+  authMount: kubernetes
+  kvMount: kv
+  role: provision
+  image:
+    registry: docker.io
+    owner: hashicorp
+    name: vault
+    tag: "2.0.4"
+    digest: sha256:5be49781ecf78bfe775c5309c6a4d9f4e9e040b6c885c99eb2b12fb69855e1a2
+
+vaultAuth:
+  role: infra
+  serviceAccount: postgres-vault   # CloudNativePG owns the service account named after the Cluster
+  createNamespace: false         # installed with `helm --create-namespace`

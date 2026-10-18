@@ -1,0 +1,6 @@
+dependencies:
+- name: hl-common
+  repository: file://../../library/hl-common
+  version: 0.1.0
+digest: sha256:1febebea980a5cdbfcca32ed1a746abdb281af180b9d9b12c0d59f951385864e
+generated: "2026-10-17T18:40:58.33029-04:00"

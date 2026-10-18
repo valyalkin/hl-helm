@@ -1,0 +1,24 @@
+suite: required values
+templates: [templates/all.yaml]
+release: {name: demo}
+tests:
+  - it: fails naming the memory limit when unset
+    set:
+      services.web.workload.resources: null
+    asserts:
+      - failedTemplate: {errorPattern: "web.workload.resources.limits.memory"}
+  - it: fails naming the image when unset
+    set:
+      services.web.workload.image: null
+    asserts:
+      - failedTemplate: {errorPattern: "web.workload.image.name"}
+  - it: fails naming the ports when none are declared
+    set:
+      services.web.service: null
+    asserts:
+      - failedTemplate: {errorPattern: "web.service.ports"}
+  - it: fails naming the ingress host when ingress is enabled without one
+    set:
+      services.web.ingress: {enabled: true}
+    asserts:
+      - failedTemplate: {errorPattern: "web.ingress.host"}

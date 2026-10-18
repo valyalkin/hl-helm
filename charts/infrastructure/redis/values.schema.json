@@ -1,0 +1,318 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "global": {
+      "type": "object"
+    },
+    "hl-common": {
+      "type": "object"
+    },
+    "redis": {
+      "$ref": "#/$defs/service"
+    },
+    "provision": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "vaultAddr": {
+          "type": "string",
+          "pattern": "^https?://"
+        },
+        "authMount": {
+          "type": "string"
+        },
+        "kvMount": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "image": {
+          "type": "object"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "static": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "generate": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "vaultAuth": {
+      "type": "object",
+      "properties": {
+        "mount": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "audiences": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "connectionRef": {
+          "type": "string"
+        },
+        "createNamespace": {
+          "type": "boolean"
+        },
+        "serviceAccount": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "workload": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "kind": {
+              "enum": [
+                "Deployment",
+                "StatefulSet"
+              ]
+            },
+            "replicas": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "image": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "registry": {
+                  "type": "string"
+                },
+                "owner": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "tag": {
+                  "type": "string"
+                },
+                "digest": {
+                  "type": "string",
+                  "pattern": "^sha256:"
+                },
+                "pullSecret": {
+                  "type": "string"
+                }
+              }
+            },
+            "resources": {
+              "type": "object",
+              "properties": {
+                "requests": {
+                  "type": "object",
+                  "properties": {
+                    "cpu": {
+                      "type": [
+                        "string",
+                        "number"
+                      ]
+                    },
+                    "memory": {
+                      "type": [
+                        "string",
+                        "number"
+                      ]
+                    }
+                  }
+                },
+                "limits": {
+                  "type": "object",
+                  "properties": {
+                    "memory": {
+                      "type": [
+                        "string",
+                        "number"
+                      ]
+                    },
+                    "cpu": {
+                      "type": [
+                        "string",
+                        "number"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "probes": {
+              "type": "object",
+              "properties": {
+                "liveness": {
+                  "type": "object"
+                },
+                "readiness": {
+                  "type": "object"
+                },
+                "startup": {
+                  "type": "object"
+                }
+              }
+            },
+            "tmpDirs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "automountServiceAccountToken": {
+              "type": "boolean"
+            }
+          }
+        },
+        "service": {
+          "type": "object",
+          "properties": {
+            "ports": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "port"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "port": {
+                    "type": "integer"
+                  },
+                  "targetPort": {
+                    "type": [
+                      "integer",
+                      "string"
+                    ]
+                  },
+                  "protocol": {
+                    "enum": [
+                      "TCP",
+                      "UDP"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ingress": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "host": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "port": {
+              "type": "integer"
+            },
+            "className": {
+              "type": "string"
+            },
+            "tls": {
+              "type": "object",
+              "properties": {
+                "secretName": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "storage": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "size": {
+              "type": "string"
+            },
+            "storageClassName": {
+              "type": "string"
+            },
+            "retain": {
+              "type": "boolean"
+            },
+            "mountPath": {
+              "type": "string"
+            }
+          }
+        },
+        "config": {
+          "type": "object",
+          "properties": {
+            "values": {
+              "type": "object"
+            },
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "mountPath": {
+              "type": "string"
+            },
+            "restartOnChange": {
+              "type": "boolean"
+            }
+          }
+        },
+        "secrets": {
+          "type": "object"
+        },
+        "dependencies": {
+          "type": "object"
+        },
+        "overrides": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

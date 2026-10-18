@@ -1,0 +1,1 @@
+{{ include "hl-common.all" (dict "root" . "name" "redis" "values" .Values.redis) }}

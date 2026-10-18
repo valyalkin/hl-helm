@@ -1,0 +1,28 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Values.cluster.name }}
+  labels:
+    {{- include "hl-common.labels" (dict "root" . "name" .Values.cluster.name) | nindent 4 }}
+  annotations:
+    # Deleting the release must not delete the database or its volumes (FR-077, Principle VI).
+    helm.sh/resource-policy: keep
+spec:
+  instances: {{ .Values.cluster.instances }}
+  imageName: {{ .Values.cluster.imageName | quote }}
+  storage:
+    size: {{ .Values.cluster.storage.size }}
+    storageClass: {{ required "cluster.storage.storageClass is required" .Values.cluster.storage.storageClass }}
+  resources:
+    {{- toYaml .Values.cluster.resources | nindent 4 }}
+  {{- with .Values.databases }}
+  managed:
+    roles:
+      {{- range . }}
+      - name: {{ .name }}
+        ensure: present
+        login: true
+        passwordSecret:
+          name: {{ printf "%s-%s-credentials" $.Values.cluster.name .name }}
+      {{- end }}
+  {{- end }}

@@ -1,0 +1,26 @@
+suite: ingress
+templates: [templates/all.yaml]
+release: {name: demo}
+tests:
+  - it: always emits the TLS stanza
+    set:
+      services.web.ingress: {enabled: true, host: web.example.org}
+    documentSelector: {path: kind, value: Ingress}
+    asserts:
+      - equal: {path: 'spec.tls[0].hosts[0]', value: web.example.org}
+      - isNull: {path: 'spec.tls[0].secretName'}
+      - equal: {path: 'spec.rules[0].http.paths[0].backend.service.port.number', value: 80}
+  - it: carries a configured TLS secret name
+    set:
+      services.web.ingress: {enabled: true, host: web.example.org, tls: {secretName: web-tls}}
+    documentSelector: {path: kind, value: Ingress}
+    asserts:
+      - equal: {path: 'spec.tls[0].secretName', value: web-tls}
+  - it: renders no Ingress unless enabled
+    asserts:
+      - hasDocuments: {count: 2}
+  - it: fails when the ingress port matches no service port
+    set:
+      services.web.ingress: {enabled: true, host: web.example.org, port: 9999}
+    asserts:
+      - failedTemplate: {errorPattern: "does not match a port"}

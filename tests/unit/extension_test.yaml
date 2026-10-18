@@ -1,0 +1,19 @@
+suite: extension by adding a resource
+templates: [templates/extra.yaml]
+release: {name: demo}
+tests:
+  - it: a chart-local CronJob carries library labels, naming and the standard container
+    set:
+      extension.cronjob:
+        workload:
+          image: {name: report, tag: "2.0.0"}
+          resources: {limits: {memory: 32Mi}}
+        service:
+          ports: [{name: http, port: 80}]
+    asserts:
+      - equal: {path: metadata.name, value: demo-report}
+      - equal: {path: 'metadata.labels["app.kubernetes.io/managed-by"]', value: Helm}
+      - equal: {path: 'metadata.labels["app.kubernetes.io/instance"]', value: demo}
+      - equal: {path: 'spec.jobTemplate.spec.template.spec.containers[0].image', value: "ghcr.io/valyalkin/report:2.0.0"}
+      - equal: {path: 'spec.jobTemplate.spec.template.spec.containers[0].resources.limits.memory', value: 32Mi}
+      - equal: {path: spec.jobTemplate.spec.template.spec.securityContext.runAsNonRoot, value: true}

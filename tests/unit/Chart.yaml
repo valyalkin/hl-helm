@@ -1,0 +1,12 @@
+apiVersion: v2
+name: hl-test
+description: Test harness consuming hl-common. Not deployed; run with `helm unittest -f '*_test.yaml' tests/unit`.
+type: application
+version: 0.1.0
+dependencies:
+  - name: hl-common
+    version: "~0.1.0"
+    repository: "file://../../charts/library/hl-common"
+annotations:
+  hl-common/reference-name: reference-chart
+  hl-common/placeholders: "services.web.workload.image.name=placeholder-app services.web.ingress.host=placeholder.example"

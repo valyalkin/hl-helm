@@ -1,0 +1,6 @@
+*.tgz
+charts/**/charts/
+.DS_Store
+kubeconfig*
+*.kubeconfig
+.kube/

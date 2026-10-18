@@ -1,0 +1,10 @@
+apiVersion: v2
+name: postgres
+description: Shared PostgreSQL for the homelab — a CloudNativePG Cluster with one database and role per application, credentials seeded in Vault.
+type: application
+version: 0.1.0
+appVersion: "17.7"
+dependencies:
+  - name: hl-common
+    version: "~0.1.0"
+    repository: "file://../../library/hl-common"

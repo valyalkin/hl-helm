@@ -1,0 +1,151 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "cluster",
+    "databases"
+  ],
+  "properties": {
+    "global": {
+      "type": "object"
+    },
+    "hl-common": {
+      "type": "object"
+    },
+    "provision": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "vaultAddr": {
+          "type": "string",
+          "pattern": "^https?://"
+        },
+        "authMount": {
+          "type": "string"
+        },
+        "kvMount": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "image": {
+          "type": "object"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "static": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "generate": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "vaultAuth": {
+      "type": "object",
+      "properties": {
+        "mount": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "audiences": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "connectionRef": {
+          "type": "string"
+        },
+        "createNamespace": {
+          "type": "boolean"
+        },
+        "serviceAccount": {
+          "type": "string"
+        }
+      }
+    },
+    "cluster": {
+      "type": "object",
+      "required": [
+        "name",
+        "instances",
+        "imageName",
+        "storage"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+        },
+        "instances": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "imageName": {
+          "type": "string",
+          "pattern": "@sha256:|:[^:]*[0-9]"
+        },
+        "storage": {
+          "type": "object",
+          "required": [
+            "size",
+            "storageClass"
+          ],
+          "properties": {
+            "size": {
+              "type": "string"
+            },
+            "storageClass": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "resources": {
+          "type": "object"
+        }
+      }
+    },
+    "databases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        }
+      }
+    }
+  }
+}

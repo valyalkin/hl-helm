@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "vault-secrets-operator": {
+      "type": "object"
+    },
+    "global": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "vault-secrets-operator"
+  ]
+}

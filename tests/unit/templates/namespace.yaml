@@ -1,0 +1,3 @@
+{{- if .Values.renderNamespace }}
+{{ include "hl-common.namespace" . }}
+{{- end }}

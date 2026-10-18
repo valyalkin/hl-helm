@@ -1,0 +1,35 @@
+{{- range .Values.databases }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: {{ printf "%s-%s" $.Values.cluster.name .name }}
+  labels:
+    {{- include "hl-common.labels" (dict "root" $ "name" .name) | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  name: {{ .name }}
+  owner: {{ .name }}
+  cluster:
+    name: {{ $.Values.cluster.name }}
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: {{ printf "%s-%s-credentials" $.Values.cluster.name .name }}
+  labels:
+    {{- include "hl-common.labels" (dict "root" $ "name" .name) | nindent 4 }}
+spec:
+  vaultAuthRef: {{ $.Release.Name }}
+  mount: {{ $.Values.provision.kvMount }}
+  type: kv-v2
+  path: {{ printf "apps/%s/postgres" .name }}
+  refreshAfter: 1h
+  destination:
+    create: true
+    name: {{ printf "%s-%s-credentials" $.Values.cluster.name .name }}
+    type: kubernetes.io/basic-auth
+    labels:
+      cnpg.io/reload: "true"
+{{- end }}

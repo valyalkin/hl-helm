@@ -1,0 +1,81 @@
+# postgres (infrastructure tier)
+
+A CloudNativePG `Cluster` (PostgreSQL 17.7) with **one database and one role per application**.
+Adding an application's database is adding a line to `databases:` — no new chart.
+
+## Connection details for a consuming chart
+
+| What | Value |
+|------|-------|
+| Address | `postgres-rw.postgres.svc.cluster.local` |
+| Port | `5432` |
+| Database / role | `<name>` / `<name>`, for each entry in `databases` |
+| Credentials in Vault | `kv/apps/<name>/postgres`, keys `username` and `password` |
+
+In the consuming application's chart, set (values key `dependencies.postgres`):
+
+```yaml
+dependencies:
+  postgres:
+    host: postgres-rw.postgres.svc.cluster.local
+    port: 5432
+    credentials:
+      vaultPath: apps/<name>/postgres
+      keys: {username: POSTGRES_USER, password: POSTGRES_PASSWORD}
+```
+
+The application's Vault policy only allows it to read `kv/apps/<its own namespace>/*`, so name
+the database after the application's namespace.
+
+## How credentials appear
+
+A `pre-install`/`pre-upgrade` Job (`<release>-provision`) logs in to Vault with the `provision`
+role and writes `kv/apps/<name>/postgres` **only if absent** — a deploy never rotates a password.
+VSO then materialises it as a `kubernetes.io/basic-auth` Secret that CloudNativePG reads for the
+managed role. Requires Vault to be initialised, unsealed and configured
+(`bootstrap/vault-init.sh`) before this chart installs.
+
+## Storage, backup and restore
+
+- 5Gi `local-path` volume per instance, class named explicitly in `cluster.storage.storageClass`.
+- The `Cluster` and `Database` resources carry `helm.sh/resource-policy: keep`, so
+  `helm uninstall` leaves the database and its volume running; reinstalling the release adopts
+  them. Data therefore survives release deletion, rollback and redeploy (FR-077, SC-022).
+  Deleting the `Cluster` resource by hand **does** delete its volumes.
+- No automated backup is configured in this delivery. Take a logical dump before risky changes:
+  `kubectl -n postgres exec postgres-1 -c postgres -- pg_dumpall -U postgres > dump.sql`.
+  Restore with `psql -f dump.sql`. CloudNativePG's `backup`/`recovery` stanzas (object store
+  required) are the upgrade path when one is available.
+- Single instance on a single node: there is no failover. A node loss is recovered from the
+  volume or a dump.
+
+## Deviation from the constitution
+
+None.
+
+## Values
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| cluster.imageName | string | `"ghcr.io/cloudnative-pg/postgresql:17.7@sha256:dab846a58e8ca3c8872584ab2225ee93fb9e659a87c52e163fefae9275b46f51"` |  |
+| cluster.instances | int | `1` |  |
+| cluster.name | string | `"postgres"` |  |
+| cluster.resources.limits.memory | string | `"512Mi"` |  |
+| cluster.resources.requests.cpu | string | `"100m"` |  |
+| cluster.resources.requests.memory | string | `"256Mi"` |  |
+| cluster.storage.size | string | `"5Gi"` |  |
+| cluster.storage.storageClass | string | `"local-path"` |  |
+| databases | list | `[]` |  |
+| provision.authMount | string | `"kubernetes"` |  |
+| provision.enabled | bool | `true` |  |
+| provision.image.digest | string | `"sha256:5be49781ecf78bfe775c5309c6a4d9f4e9e040b6c885c99eb2b12fb69855e1a2"` |  |
+| provision.image.name | string | `"vault"` |  |
+| provision.image.owner | string | `"hashicorp"` |  |
+| provision.image.registry | string | `"docker.io"` |  |
+| provision.image.tag | string | `"2.0.4"` |  |
+| provision.kvMount | string | `"kv"` |  |
+| provision.role | string | `"provision"` |  |
+| provision.vaultAddr | string | `"http://vault.vault.svc.cluster.local:8200"` |  |
+| vaultAuth.createNamespace | bool | `false` |  |
+| vaultAuth.role | string | `"infra"` |  |
+| vaultAuth.serviceAccount | string | `"postgres-vault"` |  |

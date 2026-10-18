@@ -1,0 +1,7 @@
+# Install-time overrides for charts/bootstrap/argocd (values for the upstream `argo-cd` chart).
+argo-cd:
+  configs:
+    cm:
+      # Poll Git every 3 minutes so a merge reaches the cluster well inside the 10-minute target
+      # (SC-014) without a webhook, which a homelab behind NAT cannot receive.
+      timeout.reconciliation: 180s

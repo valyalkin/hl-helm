@@ -1,0 +1,6 @@
+dependencies:
+- name: hl-common
+  repository: file://../../charts/library/hl-common
+  version: 0.1.0
+digest: sha256:63fe7a358cabc8f217848c9279939db41ac107359354e0182fa59a9f3e739aa4
+generated: "2026-10-17T13:50:43.010467-04:00"

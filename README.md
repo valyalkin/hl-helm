@@ -1,0 +1,31 @@
+# hl-helm
+
+Helm charts that define and maintain a single-node k3s homelab. The repository is the source of
+truth: the cluster can be rebuilt from an empty node with `bootstrap/install.sh`.
+
+## Tier model
+
+| Tier | Directory | Applied by | Members |
+|------|-----------|-----------|---------|
+| Library | `charts/library/` | consumed by other charts | `hl-common` |
+| Bootstrap | `charts/bootstrap/` | `bootstrap/install.sh` | Vault, Argo CD |
+| Infrastructure | `charts/infrastructure/` | `bootstrap/install.sh` | Vault Secrets Operator, CloudNativePG, Postgres, Redis |
+| Application | `charts/apps/` | Argo CD, auto-sync from `main` | one chart per application; `nginx` is the reference |
+
+Start with [`docs/onboarding.md`](docs/onboarding.md) to deploy an application,
+[`docs/bootstrap.md`](docs/bootstrap.md) to rebuild the cluster, and [`docs/tiers.md`](docs/tiers.md)
+for what each tier may depend on. Measured results are in
+[`docs/validation-results.md`](docs/validation-results.md).
+
+See `specs/001-extensible-helm-charts/` for the specification, plan and tasks, and
+`.specify/memory/constitution.md` for governance.
+
+## Cluster baseline
+
+- k3s version: v1.36.5+k3s1 (Kubernetes 1.36, single control-plane node, Ubuntu 26.04 LTS, containerd 2.3.4) — recorded 2026-10-18
+- Storage classes: `local-path` (default, `rancher.io/local-path`, reclaim policy Delete, WaitForFirstConsumer)
+- Ingress: Traefik (k3s built-in), running in `kube-system` with svclb
+
+## Validation
+
+`scripts/validate.sh` runs the pre-merge gate (lint, template, unit tests, schema validation).

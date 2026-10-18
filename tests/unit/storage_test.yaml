@@ -1,0 +1,34 @@
+suite: storage
+templates: [templates/all.yaml]
+release: {name: demo}
+set:
+  services.web.workload.kind: StatefulSet
+  services.web.storage: {enabled: true, size: 1Gi, storageClassName: local-path, mountPath: /data}
+tests:
+  - it: renders a retained claim with an explicit class and mounts it
+    documentSelector: {path: kind, value: PersistentVolumeClaim}
+    asserts:
+      - equal: {path: spec.storageClassName, value: local-path}
+      - equal: {path: 'metadata.annotations["helm.sh/resource-policy"]', value: keep}
+      - equal: {path: spec.resources.requests.storage, value: 1Gi}
+  - it: mounts the claim in the workload
+    documentSelector: {path: kind, value: StatefulSet}
+    asserts:
+      - equal: {path: 'spec.template.spec.containers[0].volumeMounts[0].mountPath', value: /data}
+      - equal: {path: 'spec.template.spec.volumes[0].persistentVolumeClaim.claimName', value: demo-web-data}
+  - it: drops the keep policy when retain is false
+    set:
+      services.web.storage.retain: false
+    documentSelector: {path: kind, value: PersistentVolumeClaim}
+    asserts:
+      - isNull: {path: 'metadata.annotations["helm.sh/resource-policy"]'}
+  - it: refuses an implicit storage class
+    set:
+      services.web.storage.storageClassName: ""
+    asserts:
+      - failedTemplate: {errorPattern: "web.storage.storageClassName"}
+  - it: requires a StatefulSet for storage
+    set:
+      services.web.workload.kind: Deployment
+    asserts:
+      - failedTemplate: {errorPattern: "must be StatefulSet"}

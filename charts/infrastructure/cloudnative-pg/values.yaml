@@ -1,0 +1,5 @@
+# Values for the upstream `cloudnative-pg` chart 0.29.1 live under the same key.
+cloudnative-pg:
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {memory: 256Mi}
