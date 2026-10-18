@@ -30,7 +30,7 @@ Helm charts for a single-node k3s homelab. This file stays consistent with
 
 ## Tooling
 
-`helm` (≥ 3.16), `helm-unittest` (`helm unittest -f '*_test.yaml' tests/unit`), `kubeconform`,
+`helm` (4.x; validated on 4.1.1, as in CI), `helm-unittest` (`helm unittest -f '*_test.yaml' tests/unit`), `kubeconform`,
 `helm-docs` (commit its output), `python3` + PyYAML for `tests/policy/`, `k3d` for a disposable
 cluster. Docs: `docs/onboarding.md`, `docs/bootstrap.md`, `docs/tiers.md`,
 `docs/validation-results.md`.
