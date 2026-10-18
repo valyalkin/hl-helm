@@ -9,7 +9,7 @@ Runnable scenarios that prove the feature works. Each maps to success criteria i
 
 | Tool | Purpose |
 |------|---------|
-| `helm` 3.16+ | Rendering and the one bootstrap install |
+| `helm` 4.x (validated on 4.1.1; CI uses the same) | Rendering and the one bootstrap install |
 | `kubectl` with a kubeconfig for the node | Everything cluster-side |
 | `helm-unittest` plugin | Library chart template tests |
 | `kubeconform` | Rendered-manifest schema validation |
@@ -104,7 +104,7 @@ scripts/infra-status.sh [--context <ctx>]
 Proves SC-020 and SC-036.
 
 ```bash
-curl -kI https://<nginx-host>/                                   # reference service over TLS
+curl -kI --resolve <nginx-host>:443:<node-ip> https://<nginx-host>/                                  # reference service over TLS
 kubectl -n postgres get cluster postgres                         # Cluster in healthy state
 kubectl -n postgres get database                                 # the nginx database: applied true
 kubectl -n redis get pods
@@ -127,7 +127,9 @@ Proves SC-031, SC-032, SC-034.
 # Applications come and go; dependencies do not notice.
 for i in $(seq 1 10); do
   kubectl -n nginx delete deployment nginx-web
-  # Argo CD (selfHeal) recreates it; wait for it
+  # Argo CD (selfHeal) recreates it; wait for it to exist, then for the rollout. Repeated
+  # deletions raise self-heal's exponential backoff (cap ~3 min), so allow for that.
+  until kubectl -n nginx get deploy nginx-web >/dev/null 2>&1; do sleep 3; done
   kubectl -n nginx rollout status deploy/nginx-web --timeout=120s
 done
 kubectl -n postgres get pod postgres-1 -o jsonpath='{.metadata.uid} {.status.containerStatuses[0].restartCount}'
@@ -172,11 +174,12 @@ Proves SC-015 and FR-031.
 
 ```bash
 kubectl -n nginx scale deployment nginx-web --replicas=5
-sleep 60
-kubectl -n nginx get deployment nginx-web -o jsonpath='{.spec.replicas}'
+# Self-heal is not instant; allow up to 10 minutes (SC-015). A single change usually reverts in
+# seconds, but it can take ~4 min after repeated heals (the step 6 loop).
+until [ "$(kubectl -n nginx get deployment nginx-web -o jsonpath='{.spec.replicas}')" = 1 ]; do sleep 5; done
 ```
 
-**Expected**: back to the repository's value.
+**Expected**: back to the repository's value (1).
 
 ## Step 9 — Prove onboarding
 

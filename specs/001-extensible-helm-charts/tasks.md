@@ -244,7 +244,7 @@ time; make a valid change and confirm the pending diff is shown before merge.
 - [X] T096 [P] Record the measured outcome against every success criterion in `docs/validation-results.md`, including the three timings — rebuild duration (SC-005), merge-to-cluster latency (SC-014), and stack-ready duration (SC-020)
 - [X] T097 [P] Write `CLAUDE.md` with runtime agent guidance consistent with the constitution, which Governance already references (constitution.md Governance)
 - [X] T098 [P] Cross-link `README.md`, `docs/onboarding.md`, `docs/bootstrap.md`, and `docs/tiers.md`
-- [ ] T099 Run the full `quickstart.md` end to end against the server and correct any step that does not match reality
+- [X] T099 Run the full `quickstart.md` end to end against the server and correct any step that does not match reality
 
 ---
 
