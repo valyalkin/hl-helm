@@ -22,9 +22,9 @@ See `specs/001-extensible-helm-charts/` for the specification, plan and tasks, a
 
 ## Cluster baseline
 
-- k3s version: _to be recorded at quickstart step 0 (task T005)_
-- Storage classes: _pending_
-- Ingress: Traefik (k3s built-in) — _pending confirmation_
+- k3s version: v1.36.5+k3s1 (Kubernetes 1.36, single control-plane node, Ubuntu 26.04 LTS, containerd 2.3.4) — recorded 2026-10-18
+- Storage classes: `local-path` (default, `rancher.io/local-path`, reclaim policy Delete, WaitForFirstConsumer)
+- Ingress: Traefik (k3s built-in), running in `kube-system` with svclb
 
 ## Validation
 

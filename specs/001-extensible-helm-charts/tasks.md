@@ -38,7 +38,7 @@ There is no `scaffolds/` directory — `charts/apps/nginx/` is the reference cha
 - [X] T002 [P] Create root `.gitignore` covering `*.tgz`, `charts/**/charts/`, `.DS_Store`, and local kubeconfigs
 - [X] T003 [P] Create root `README.md` with repository purpose, tier model, and a placeholder for the k3s version recorded in T005
 - [X] T004 Create the directory skeleton from plan.md: `charts/{library,bootstrap,infrastructure,apps}/`, `argocd/`, `bootstrap/`, `docs/`, `tests/{unit,policy}/`, `scripts/`
-- [ ] T005 Record the cluster baseline in `README.md` — k3s version, storage classes, Traefik presence — per quickstart step 0 (**requires kubeconfig; blocks T042 if below Kubernetes 1.31**)
+- [X] T005 Record the cluster baseline in `README.md` — k3s version, storage classes, Traefik presence — per quickstart step 0 (**requires kubeconfig; blocks T042 if below Kubernetes 1.31**)
 - [X] T006 [P] Create a disposable local cluster for iteration per quickstart layer 1: `k3d cluster create homelab-test --servers 1`
 - [ ] T007 Create the public GitHub remote and push `main`, so Argo CD has a repository to read; record its URL in `argocd/applicationset.yaml` (research R-007)
 
