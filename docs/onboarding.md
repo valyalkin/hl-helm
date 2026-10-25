@@ -66,6 +66,37 @@ Inside that application's chart only — nothing outside it changes.
 3. Validate and open a pull request as above. The new service shares the application's namespace
    and can reach its siblings by short name (`<release>-<service>`).
 
+## C. Releasing from a service repository
+
+Each service lives in its own repository and builds its own image. A file at that repository's
+root links it to its place here:
+
+```yaml
+# homelab.yaml in the service repository
+app: todo          # charts/apps/todo
+service: api       # the `api:` block and templates/api.yaml
+image: todo-api    # ghcr.io/<owner>/todo-api
+```
+
+On every push to its `main`, the service's release workflow pushes the image as
+`ghcr.io/<owner>/<image>:<run>-<sha>`, checks out this repository and runs
+
+```sh
+scripts/bump-image.py <app> <service> <tag> <digest>
+```
+
+which pins the new tag and digest in `charts/apps/<app>/values.yaml`, bumps the chart's patch
+version and regenerates its README. The workflow then opens a pull request here. CI runs the gate
+and the rendered diff as for any change, and **merging deploys the new version**.
+
+The script only changes an image. A new application or a new service block is still a reviewed
+chart change (sections A and B), made once with the first image's digest. After that, the bump
+fails and names what is missing if the block is gone.
+
+The workflow needs a repository secret `HL_HELM_TOKEN`: a fine-grained personal access token
+limited to this repository, with *Contents* and *Pull requests* read and write. A pull request
+opened with the workflow's own `GITHUB_TOKEN` would not trigger CI here.
+
 ## Secrets
 
 Secrets live in Vault and never in this repository. Put the value at
