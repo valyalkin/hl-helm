@@ -95,7 +95,8 @@ fails and names what is missing if the block is gone.
 
 The workflow needs a repository secret `HL_HELM_TOKEN`: a fine-grained personal access token
 limited to this repository, with *Contents* and *Pull requests* read and write. A pull request
-opened with the workflow's own `GITHUB_TOKEN` would not trigger CI here.
+opened with the workflow's own `GITHUB_TOKEN` would not trigger CI here. Until the secret is set, the
+workflow still pushes the image and ends with a warning instead of a pull request.
 
 ## Secrets
 
@@ -119,14 +120,22 @@ rejects secret-shaped literals.
 
 Images default to `ghcr.io/<this repository's owner>/<name>`. Set `registry` and `owner` for an
 upstream image. Every image needs a version tag or a digest — `latest` and bare tags fail
-rendering. For a private ghcr.io namespace, store a registry credential in Vault as a
-`kubernetes.io/dockerconfigjson` secret entry and name it in `image.pullSecret`:
+rendering.
+
+Application images on ghcr.io are **public**, so no pull credential is needed. ghcr creates each
+new package as private: make it public once, at
+`https://github.com/users/<owner>/packages/container/<name>/settings` → *Change visibility*. Until
+then the pod fails with `ImagePullBackOff`.
+
+If one image must stay private, store a registry credential in Vault under the application's own
+path (the `apps` policy grants nothing else) as a `kubernetes.io/dockerconfigjson` secret entry,
+and name it in `image.pullSecret`:
 
 ```yaml
 web:
   workload: {image: {pullSecret: ghcr}}
   secrets:
-    ghcr: {vaultPath: shared/ghcr, type: kubernetes.io/dockerconfigjson}
+    ghcr: {vaultPath: apps/todo/ghcr, type: kubernetes.io/dockerconfigjson}
 ```
 
 ## Databases and the cache
