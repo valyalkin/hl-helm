@@ -46,3 +46,48 @@ backend:
       host: postgres-rw.postgres.svc.cluster.local
       port: 5432
       credentials: {vaultPath: apps/hl-budget/postgres, keys: {username: SPRING_DATASOURCE_USERNAME, password: SPRING_DATASOURCE_PASSWORD}}
+frontend:
+  workload:
+    image:
+      # -- REQUIRED: image name in ghcr.io/valyalkin. Set by the release workflow from homelab.yaml
+      name: hl-budget-frontend
+      # -- REQUIRED: version tag; updated by scripts/bump-image.py on every release
+      tag: "2-bb4367e"
+      # -- REQUIRED: digest of that tag; updated by scripts/bump-image.py on every release
+      digest: sha256:830da6f5c6e00d24ecad606d0be8b053f3ae284c7ebe00dfb3142947bc2a94a5
+    # -- REQUIRED: memory limit for the Next.js standalone server
+    resources:
+      limits: {memory: 256Mi}
+    # -- OPTIONAL: writable directories (the root filesystem is read-only)
+    tmpDirs: [/tmp, /app/.next/cache]
+    # -- OPTIONAL: plain environment variables (never secrets)
+    env:
+      - {name: APP_BASE_URL, value: "https://hl-budget.home.example"}
+      - {name: API_BASE_URL, value: "http://hl-budget-backend"}
+      - {name: API_TIMEOUT_MS, value: "5000"}
+      - {name: AUTH0_DOMAIN, value: "k8xv92p.ca.auth0.com"}
+      # Public identifier, not a secret
+      - {name: AUTH0_CLIENT_ID, value: "zvyqOJ4IaTklTQQl0lLuL1yL2reyScy4"}
+      - {name: AUTH0_AUDIENCE, value: "https://api.hl-budget.example"}
+    # -- OPTIONAL: HTTP probes
+    probes:
+      liveness: {httpGet: {path: /healthz, port: http}, periodSeconds: 10}
+      readiness: {httpGet: {path: /readyz, port: http}, periodSeconds: 5}
+      startup: {httpGet: {path: /healthz, port: http}, failureThreshold: 30, periodSeconds: 2}
+  # -- REQUIRED: port 80 in the cluster, the container's port as targetPort
+  service:
+    ports: [{name: http, port: 80, targetPort: 8080}]
+  ingress:
+    # -- OPTIONAL: expose over HTTPS through Traefik
+    enabled: true
+    # -- REQUIRED when enabled: public hostname, shared with `backend`
+    host: hl-budget.home.example
+    # -- OPTIONAL: path prefix; everything not under /api
+    path: /
+    # -- OPTIONAL: certificate Secret, synced from Vault by `secrets.tls`
+    tls: {secretName: hl-budget-frontend-tls}
+  # -- OPTIONAL: Vault secrets. The user writes the values; the chart only names the paths
+  secrets:
+    auth0: {vaultPath: apps/hl-budget/frontend, keys: {auth0_client_secret: AUTH0_CLIENT_SECRET, auth0_secret: AUTH0_SECRET}}
+    # Certificate for the host (keys tls.crt, tls.key). Until it exists Traefik serves its default
+    tls: {vaultPath: apps/hl-budget/tls, type: kubernetes.io/tls, keys: {}, rolloutRestart: false}
