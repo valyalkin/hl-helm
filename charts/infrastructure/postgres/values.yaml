@@ -10,9 +10,12 @@ cluster:
     limits: {memory: 512Mi}
 
 # One database and one role per application. Adding an application's database is adding a line.
+# `name` is the database and role (lower case, digits, underscores). `namespace` is the owning
+# application's namespace, which decides the Vault path kv/apps/<namespace>/postgres; it defaults
+# to `name`, so set it when the namespace has a hyphen: {name: hl_budget, namespace: hl-budget}.
 databases: []                    # e.g. [{name: todo}]
 
-# Seeds kv/apps/<name>/postgres in Vault (username + generated password) before the release
+# Seeds kv/apps/<namespace>/postgres in Vault (username + generated password) before the release
 # starts. Existing credentials are never rotated by a deploy.
 provision:
   enabled: true

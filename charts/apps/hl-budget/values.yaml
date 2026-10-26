@@ -17,7 +17,7 @@ backend:
     tmpDirs: [/tmp]
     # -- OPTIONAL: plain environment variables (never secrets)
     env:
-      - {name: SPRING_DATASOURCE_URL, value: "jdbc:postgresql://postgres-rw.postgres.svc.cluster.local:5432/hl-budget"}
+      - {name: SPRING_DATASOURCE_URL, value: "jdbc:postgresql://postgres-rw.postgres.svc.cluster.local:5432/hl_budget"}
       - {name: HLBUDGET_AUTH_ISSUER, value: "https://k8xv92p.ca.auth0.com/"}
       - {name: HLBUDGET_AUTH_AUDIENCE, value: "https://api.hl-budget.example"}
       - {name: HLBUDGET_AUTH_JWKSETURI, value: "https://k8xv92p.ca.auth0.com/.well-known/jwks.json"}

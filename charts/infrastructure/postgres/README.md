@@ -10,7 +10,7 @@ Adding an application's database is adding a line to `databases:` — no new cha
 | Address | `postgres-rw.postgres.svc.cluster.local` |
 | Port | `5432` |
 | Database / role | `<name>` / `<name>`, for each entry in `databases` |
-| Credentials in Vault | `kv/apps/<name>/postgres`, keys `username` and `password` |
+| Credentials in Vault | `kv/apps/<namespace>/postgres`, keys `username` and `password` (`namespace` defaults to `name`) |
 
 In the consuming application's chart, set (values key `dependencies.postgres`):
 
@@ -20,17 +20,20 @@ dependencies:
     host: postgres-rw.postgres.svc.cluster.local
     port: 5432
     credentials:
-      vaultPath: apps/<name>/postgres
+      vaultPath: apps/<namespace>/postgres
       keys: {username: POSTGRES_USER, password: POSTGRES_PASSWORD}
 ```
 
-The application's Vault policy only allows it to read `kv/apps/<its own namespace>/*`, so name
-the database after the application's namespace.
+The application's Vault policy only allows it to read `kv/apps/<its own namespace>/*`, so the
+credentials are written under the owning namespace. Postgres names allow only lower case, digits
+and underscores, so an application whose namespace has a hyphen sets both:
+`{name: hl_budget, namespace: hl-budget}` (database and role `hl_budget`, credentials at
+`kv/apps/hl-budget/postgres`).
 
 ## How credentials appear
 
 A `pre-install`/`pre-upgrade` Job (`<release>-provision`) logs in to Vault with the `provision`
-role and writes `kv/apps/<name>/postgres` **only if absent** — a deploy never rotates a password.
+role and writes `kv/apps/<namespace>/postgres` **only if absent** — a deploy never rotates a password.
 VSO then materialises it as a `kubernetes.io/basic-auth` Secret that CloudNativePG reads for the
 managed role. Requires Vault to be initialised, unsealed and configured
 (`bootstrap/vault-init.sh`) before this chart installs.

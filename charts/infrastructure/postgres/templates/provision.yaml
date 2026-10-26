@@ -1,6 +1,6 @@
 {{- $entries := list -}}
 {{- range .Values.databases -}}
-{{- $entries = append $entries (dict "path" (printf "apps/%s/postgres" .name) "static" (dict "username" .name) "generate" (list "password")) -}}
+{{- $entries = append $entries (dict "path" (printf "apps/%s/postgres" (default .name .namespace)) "static" (dict "username" .name) "generate" (list "password")) -}}
 {{- end -}}
 {{- $_ := set .Values.provision "entries" $entries -}}
 {{ include "hl-common.vaultProvision" . }}

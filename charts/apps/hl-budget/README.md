@@ -1,6 +1,6 @@
 # hl-budget
 
-![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2-548d0ff](https://img.shields.io/badge/AppVersion-2--548d0ff-informational?style=flat-square)
+![Version: 0.1.1](https://img.shields.io/badge/Version-0.1.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2-548d0ff](https://img.shields.io/badge/AppVersion-2--548d0ff-informational?style=flat-square)
 
 HL Budget, a personal budgeting app — Next.js web app at / and Kotlin/Spring API at /api on one private host.
 
@@ -20,7 +20,7 @@ HL Budget, a personal budgeting app — Next.js web app at / and Kotlin/Spring A
 | backend.ingress.path | string | `"/api"` | OPTIONAL: path prefix, not stripped; the backend serves under /api |
 | backend.ingress.tls | object | `{"secretName":"hl-budget-frontend-tls"}` | OPTIONAL: certificate Secret, synced from Vault by `frontend.secrets.tls` |
 | backend.service | object | `{"ports":[{"name":"http","port":80,"targetPort":8080}]}` | REQUIRED: port 80 in the cluster, the container's port as targetPort |
-| backend.workload.env | list | `[{"name":"SPRING_DATASOURCE_URL","value":"jdbc:postgresql://postgres-rw.postgres.svc.cluster.local:5432/hl-budget"},{"name":"HLBUDGET_AUTH_ISSUER","value":"https://k8xv92p.ca.auth0.com/"},{"name":"HLBUDGET_AUTH_AUDIENCE","value":"https://api.hl-budget.example"},{"name":"HLBUDGET_AUTH_JWKSETURI","value":"https://k8xv92p.ca.auth0.com/.well-known/jwks.json"},{"name":"HLBUDGET_AUTH_CLAIMSNAMESPACE","value":"https://hl-budget/"},{"name":"LOGGING_LEVEL_ROOT","value":"INFO"}]` | OPTIONAL: plain environment variables (never secrets) |
+| backend.workload.env | list | `[{"name":"SPRING_DATASOURCE_URL","value":"jdbc:postgresql://postgres-rw.postgres.svc.cluster.local:5432/hl_budget"},{"name":"HLBUDGET_AUTH_ISSUER","value":"https://k8xv92p.ca.auth0.com/"},{"name":"HLBUDGET_AUTH_AUDIENCE","value":"https://api.hl-budget.example"},{"name":"HLBUDGET_AUTH_JWKSETURI","value":"https://k8xv92p.ca.auth0.com/.well-known/jwks.json"},{"name":"HLBUDGET_AUTH_CLAIMSNAMESPACE","value":"https://hl-budget/"},{"name":"LOGGING_LEVEL_ROOT","value":"INFO"}]` | OPTIONAL: plain environment variables (never secrets) |
 | backend.workload.image.digest | string | `"sha256:17598196aa55cc0b4696ea306e1979822d86701d3da8c5b88fb373477547672e"` | REQUIRED: digest of that tag; updated by scripts/bump-image.py on every release |
 | backend.workload.image.name | string | `"hl-budget-backend"` | REQUIRED: image name in ghcr.io/valyalkin. Set by the release workflow from homelab.yaml |
 | backend.workload.image.tag | string | `"2-548d0ff"` | REQUIRED: version tag; updated by scripts/bump-image.py on every release |
