@@ -2,3 +2,4 @@
 # credential path end to end; replace or extend it as real applications arrive.
 databases:
   - name: nginx
+  - name: hl-budget

@@ -1,0 +1,3 @@
+backend:
+  ingress:
+    host: hl-budget.ci.example
