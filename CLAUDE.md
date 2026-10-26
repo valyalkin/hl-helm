@@ -12,6 +12,9 @@ Helm charts for a single-node k3s homelab. This file stays consistent with
   Argo CD never manages the first two.
 - `charts/apps/nginx` is the reference chart and copy source. One application = one chart = one
   namespace named for its directory.
+- Each service's code lives in its own repository. Its release workflow calls
+  `scripts/bump-image.py <app> <service> <tag> <digest>` and opens a PR here
+  (`docs/onboarding.md` § C). The skills in `valyalkin/hl-skills` drive this flow.
 - `specs/001-extensible-helm-charts/` — spec, plan, tasks, contracts. `tasks.md` is the status.
 
 ## Rules that bite
