@@ -23,6 +23,9 @@ backend:
       - {name: HLBUDGET_AUTH_JWKSETURI, value: "https://k8xv92p.ca.auth0.com/.well-known/jwks.json"}
       - {name: HLBUDGET_AUTH_CLAIMSNAMESPACE, value: "https://hl-budget/"}
       - {name: LOGGING_LEVEL_ROOT, value: INFO}
+      # The API document and Swagger UI are not public on the shared host
+      - {name: SPRINGDOC_API_DOCS_ENABLED, value: "false"}
+      - {name: SPRINGDOC_SWAGGER_UI_ENABLED, value: "false"}
     # -- OPTIONAL: HTTP probes. Startup allows 2 minutes for the JVM and Flyway
     probes:
       liveness: {httpGet: {path: /healthz, port: http}, periodSeconds: 10}
