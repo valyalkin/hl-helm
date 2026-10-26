@@ -23,6 +23,6 @@ spec:
         ensure: present
         login: true
         passwordSecret:
-          name: {{ printf "%s-%s-credentials" $.Values.cluster.name .name }}
+          name: {{ printf "%s-%s-credentials" $.Values.cluster.name (default .name .namespace) }}
       {{- end }}
   {{- end }}

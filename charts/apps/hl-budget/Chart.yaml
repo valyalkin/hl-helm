@@ -2,7 +2,7 @@ apiVersion: v2
 name: hl-budget
 description: HL Budget, a personal budgeting app — Next.js web app at / and Kotlin/Spring API at /api on one private host.
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "2-548d0ff"
 dependencies:
   - name: hl-common

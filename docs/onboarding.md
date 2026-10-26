@@ -143,7 +143,10 @@ web:
 Your application reaches Postgres and Redis through addresses it is given as configuration, so
 neither lifecycle touches the other. To get a database, add `- name: todo` to `databases:` in
 `bootstrap/values/postgres.yaml` and apply it (`bootstrap/install.sh --only postgres`); a
-credential is generated in Vault at `kv/apps/todo/postgres`. Then declare it:
+credential is generated in Vault at `kv/apps/todo/postgres`. Postgres names cannot contain a
+hyphen, so an application in namespace `my-app` adds `{name: my_app, namespace: my-app}`: the
+database and role are `my_app` and the credential still lands at `kv/apps/my-app/postgres`.
+Then declare it:
 
 ```yaml
 web:

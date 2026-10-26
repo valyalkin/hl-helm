@@ -142,7 +142,13 @@
         "properties": {
           "name": {
             "type": "string",
-            "pattern": "^[a-z][a-z0-9_]*$"
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "description": "Database and role name. Postgres identifier: lower case, digits, underscores."
+          },
+          "namespace": {
+            "type": "string",
+            "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+            "description": "Namespace of the application that owns it; credentials go to kv/apps/<namespace>/postgres. Defaults to name."
           }
         }
       }

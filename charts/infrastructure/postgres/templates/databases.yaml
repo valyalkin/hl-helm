@@ -3,7 +3,7 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Database
 metadata:
-  name: {{ printf "%s-%s" $.Values.cluster.name .name }}
+  name: {{ printf "%s-%s" $.Values.cluster.name (default .name .namespace) }}
   labels:
     {{- include "hl-common.labels" (dict "root" $ "name" .name) | nindent 4 }}
   annotations:
@@ -17,18 +17,18 @@ spec:
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultStaticSecret
 metadata:
-  name: {{ printf "%s-%s-credentials" $.Values.cluster.name .name }}
+  name: {{ printf "%s-%s-credentials" $.Values.cluster.name (default .name .namespace) }}
   labels:
     {{- include "hl-common.labels" (dict "root" $ "name" .name) | nindent 4 }}
 spec:
   vaultAuthRef: {{ $.Release.Name }}
   mount: {{ $.Values.provision.kvMount }}
   type: kv-v2
-  path: {{ printf "apps/%s/postgres" .name }}
+  path: {{ printf "apps/%s/postgres" (default .name .namespace) }}
   refreshAfter: 1h
   destination:
     create: true
-    name: {{ printf "%s-%s-credentials" $.Values.cluster.name .name }}
+    name: {{ printf "%s-%s-credentials" $.Values.cluster.name (default .name .namespace) }}
     type: kubernetes.io/basic-auth
     labels:
       cnpg.io/reload: "true"
