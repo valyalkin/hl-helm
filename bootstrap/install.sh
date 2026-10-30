@@ -61,7 +61,8 @@ deploy() { # name chart namespace values
   [ -n "$vals" ] && args=(-f "$vals")
   H dependency build "$chart" >/dev/null 2>&1 || H dependency update "$chart" >/dev/null
   if [ "$DIFF" -eq 1 ]; then
-    H diff upgrade "$name" "$chart" -n "$ns" ${args[@]+"${args[@]}"} || true
+    # --allow-unreleased: a release that is not installed yet is previewed as all-new objects
+    H diff upgrade "$name" "$chart" -n "$ns" --allow-unreleased ${args[@]+"${args[@]}"} || true
   else
     echo "==> $name ($chart -> $ns)"
     H upgrade --install "$name" "$chart" -n "$ns" --create-namespace ${args[@]+"${args[@]}"} --wait --timeout 10m
