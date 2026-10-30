@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Inject eight deliberate violations into a throwaway copy of the repository and assert that the
+# Inject nine deliberate violations into a throwaway copy of the repository and assert that the
 # gate rejects each one, naming the offending file and value (quickstart step 1).
 set -uo pipefail
 here=$(cd "$(dirname "$0")/.." && pwd)
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
-rsync -a "$here/" "$work/"
-cd "$work" && git add -A >/dev/null 2>&1 && git -c user.email=t@t -c user.name=t commit -qm base --allow-empty
+# Copy without .git and start a fresh repository: in a git worktree .git is only a pointer to the
+# main repository, and committing in the copy would land on the real branch.
+rsync -a --exclude .git "$here/" "$work/"
+cd "$work" && git init -q && git add -A >/dev/null 2>&1 && git -c user.email=t@t -c user.name=t commit -qm base --allow-empty
 export HL_ROOT="$work"
 helm dependency update charts/apps/nginx >/dev/null
 
@@ -68,6 +70,12 @@ sed -i.bak -e 's/^name: nginx/name: dup/' -e '/^annotations:/,$d' charts/apps/du
 helm dependency update charts/apps/dup >/dev/null
 expect "duplicate ingress host" "nginx.home.example" "charts/apps/dup" python3 tests/policy/collisions.py
 reset; rm -rf charts/apps/dup
+
+# 9. a failing chart-level unit test (charts/<tier>/<name>/tests/)
+mkdir -p charts/apps/nginx/tests
+printf 'suite: selftest\ntemplates: [templates/web.yaml]\ntests:\n  - it: is deliberately wrong\n    documentSelector: {path: kind, value: Deployment}\n    asserts:\n      - equal: {path: spec.replicas, value: 99}\n' > charts/apps/nginx/tests/selftest_test.yaml
+expect "failing chart test" "chart tests FAILED" "charts/apps/nginx" scripts/chart-tests.sh charts/apps/nginx
+reset; rm -rf charts/apps/nginx/tests
 
 echo "$pass of $total violations caught"
 [ $pass -eq $total ]

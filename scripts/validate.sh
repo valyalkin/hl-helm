@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Pre-merge gate (FR-016): lint -> template -> helm unittest -> kubeconform -> policy -> docs.
+# Pre-merge gate (FR-016): lint -> template -> helm unittest (hl-common and per-chart tests/) -> kubeconform -> policy -> docs.
 #   scripts/validate.sh              run the full gate
-#   scripts/validate.sh --self-test  inject eight deliberate violations and assert each is caught
+#   scripts/validate.sh --self-test  inject nine deliberate violations and assert each is caught
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -38,6 +38,7 @@ done
 echo "== unit tests"
 helm dependency update tests/unit >/dev/null
 helm unittest -f '*_test.yaml' tests/unit || fail=1
+scripts/chart-tests.sh || fail=1
 
 echo "== policy"
 for check in tests/policy/*.py; do
