@@ -70,6 +70,12 @@ vt vault policy write infra-read - >/dev/null <<'POLICY'
 path "kv/data/apps/+/postgres" { capabilities = ["read"] }
 path "kv/data/infra/*"         { capabilities = ["read"] }
 POLICY
+# The shared ingress certificate and the Tailscale gateway each read only their own credential
+# (owner-written: kv/infra/cloudflare api_token, kv/infra/tailscale client_secret).
+vt vault policy write edge - >/dev/null <<'POLICY'
+path "kv/data/infra/cloudflare" { capabilities = ["read"] }
+path "kv/data/infra/tailscale"  { capabilities = ["read"] }
+POLICY
 vt vault policy write provision - >/dev/null <<'POLICY'
 path "kv/data/apps/+/postgres" { capabilities = ["create", "read"] }
 path "kv/data/infra/*"         { capabilities = ["create", "read"] }
@@ -84,4 +90,7 @@ vt vault write auth/kubernetes/role/infra \
 vt vault write auth/kubernetes/role/provision \
   bound_service_account_names=provisioner bound_service_account_namespaces=postgres,redis \
   token_policies=provision ttl=10m >/dev/null
-echo "vault configured: kv/, kubernetes auth, roles apps / infra / provision"
+vt vault write auth/kubernetes/role/edge \
+  bound_service_account_names=ingress-tls,tailscale bound_service_account_namespaces=ingress-tls,tailscale \
+  audience=vault token_policies=edge ttl=1h >/dev/null
+echo "vault configured: kv/, kubernetes auth, roles apps / infra / provision / edge"

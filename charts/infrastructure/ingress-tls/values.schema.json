@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "global": {"type": "object"},
+    "hl-common": {"type": "object"},
+    "domain": {
+      "type": "string",
+      "pattern": "^$|^([a-z0-9]([a-z0-9-]*[a-z0-9])?\\.)+[a-z]{2,}$"
+    },
+    "acme": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "email": {"type": "string"},
+        "server": {"enum": ["staging", "production"]}
+      }
+    },
+    "cloudflare": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "vaultPath": {"type": "string", "minLength": 1},
+        "refreshAfter": {"type": "string"}
+      }
+    },
+    "redirectHttpToHttps": {"type": "boolean"},
+    "tlsStore": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {"type": "string"}
+      }
+    },
+    "vaultAuth": {
+      "type": "object",
+      "properties": {
+        "mount": {"type": "string"},
+        "role": {"type": "string"},
+        "audiences": {"type": "array", "items": {"type": "string"}},
+        "connectionRef": {"type": "string"},
+        "createNamespace": {"type": "boolean"},
+        "serviceAccount": {"type": "string"}
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,6 @@
+# Homelab values for charts/infrastructure/ingress-tls (hl-budget-spec feature 005).
+# The certificate covers valyalkin.com and *.valyalkin.com; DNS has *.valyalkin.com -> 10.0.0.100.
+domain: valyalkin.com
+acme:
+  # staging first; switch to production once the staging certificate is READY (chart README)
+  server: staging

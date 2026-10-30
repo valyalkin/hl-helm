@@ -1,0 +1,30 @@
+# Values for the upstream `cert-manager` chart v1.21.3 live under the same key.
+cert-manager:
+  # -- Install and upgrade the CRDs with the chart. `crds.keep` (upstream default true) leaves
+  # them in place on uninstall, so certificates survive a reinstall.
+  crds:
+    enabled: true
+  # -- DNS-01 self-check asks public resolvers only, not the cluster DNS, so a freshly written
+  # `_acme-challenge` record is seen as Let's Encrypt sees it.
+  dns01RecursiveNameservers: "1.1.1.1:53,8.8.8.8:53"
+  # -- See `dns01RecursiveNameservers`.
+  dns01RecursiveNameserversOnly: true
+  # -- Controller resources (the node is shared; every container needs a memory limit).
+  resources:
+    requests: {cpu: 10m, memory: 64Mi}
+    limits: {memory: 128Mi}
+  webhook:
+    # -- Webhook resources.
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}
+      limits: {memory: 64Mi}
+  cainjector:
+    # -- CA injector resources.
+    resources:
+      requests: {cpu: 10m, memory: 64Mi}
+      limits: {memory: 128Mi}
+  startupapicheck:
+    # -- Post-install API check job resources.
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}
+      limits: {memory: 64Mi}

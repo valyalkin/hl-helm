@@ -1,0 +1,24 @@
+{{- include "ingress-tls.validate" . -}}
+{{- $domain := include "ingress-tls.domain" . -}}
+# One certificate for the apex and every first-level name, shared by every app through the
+# default TLSStore. Renewed by cert-manager at two thirds of its lifetime.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard
+  namespace: {{ include "ingress-tls.storeNamespace" . }}
+  labels:
+    {{- include "ingress-tls.labels" (dict "root" . "name" "wildcard") | nindent 4 }}
+spec:
+  secretName: wildcard-tls
+  dnsNames:
+    - {{ $domain | quote }}
+    - {{ printf "*.%s" $domain | quote }}
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef:
+    name: letsencrypt
+    kind: Issuer
+    group: cert-manager.io

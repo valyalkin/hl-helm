@@ -22,6 +22,13 @@ install:
   - name: redis
     chart: charts/infrastructure/redis
     namespace: redis
+  - name: cert-manager
+    chart: charts/infrastructure/cert-manager
+    namespace: cert-manager
+  - name: ingress-tls
+    chart: charts/infrastructure/ingress-tls
+    namespace: ingress-tls
+    values: bootstrap/values/ingress-tls.yaml
 
 argocd:
   name: argocd

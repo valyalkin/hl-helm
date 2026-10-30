@@ -1,0 +1,24 @@
+{{- include "ingress-tls.validate" . -}}
+# Let's Encrypt account and DNS-01 solver. Namespaced (not a ClusterIssuer) so the Cloudflare token
+# stays in this namespace; there is only one certificate to issue.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: letsencrypt
+  namespace: {{ include "ingress-tls.storeNamespace" . }}
+  labels:
+    {{- include "ingress-tls.labels" (dict "root" . "name" "letsencrypt") | nindent 4 }}
+spec:
+  acme:
+    server: {{ include "ingress-tls.acmeServer" . }}
+    {{- with .Values.acme.email }}
+    email: {{ . | quote }}
+    {{- end }}
+    privateKeySecretRef:
+      name: letsencrypt-{{ .Values.acme.server }}-account
+    solvers:
+      - dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: cloudflare-api-token
+              key: api_token
