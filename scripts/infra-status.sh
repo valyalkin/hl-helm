@@ -28,8 +28,26 @@ done < <(awk '
   i && /^  - name:/ { flush(); name=$3; next }
   i && /^    chart:/ {chart=$2} i && /^    namespace:/ {ns=$2} i && /^    values:/ {vals=$2}
   END { if (i) flush() }' bootstrap/install-order.yaml)
+K() { kubectl "${HC[@]+"${HC[@]/--kube-context/--context}"}" "$@"; }
+
+# The shared certificate (feature 005). Fewer than 14 days left means renewal has failed for
+# about two weeks: cert-manager renews at two thirds of the lifetime.
+echo
+echo "Certificates (ingress-tls):"
+printf '%-12s %-7s %-22s %s\n' NAME READY NOT-AFTER DAYS-LEFT
+K -n ingress-tls get certificates -o json 2>/dev/null | jq -r '
+  .items[] |
+  ([.status.conditions[]? | select(.type == "Ready")][0]) as $r |
+  (.status.notAfter // "") as $na |
+  (if $na == "" then "-" else ((($na | fromdateiso8601) - now) / 86400 | floor) end) as $days |
+  [ .metadata.name, ($r.status // "Unknown"), (if $na == "" then "-" else $na end),
+    (if ($days | type) == "number" and $days < 14 then "\($days) RENEWAL OVERDUE" else "\($days)" end),
+    (if ($r.status // "") != "True" then "  " + ($r.message // "no Ready condition yet") else "" end) ] |
+  "\(.[0])\t\(.[1])\t\(.[2])\t\(.[3])\(.[4])"' | awk -F'\t' '{printf "%-12s %-7s %-22s %s\n", $1, $2, $3, $4}' \
+  || echo "  (none: is ingress-tls installed?)"
+
 echo
 echo "Unhealthy pods in infrastructure namespaces:"
-for ns in vault vault-secrets-operator cnpg-system postgres redis argocd; do
-  kubectl "${HC[@]+"${HC[@]/--kube-context/--context}"}" -n "$ns" get pods --no-headers 2>/dev/null | grep -vE 'Running|Completed' || true
+for ns in vault vault-secrets-operator cnpg-system postgres redis cert-manager ingress-tls tailscale argocd; do
+  K -n "$ns" get pods --no-headers 2>/dev/null | grep -vE 'Running|Completed' || true
 done
