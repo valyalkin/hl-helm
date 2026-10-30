@@ -7,9 +7,9 @@ backend:
       # -- REQUIRED: image name in ghcr.io/valyalkin. Set by the release workflow from homelab.yaml
       name: hl-budget-backend
       # -- REQUIRED: version tag; updated by scripts/bump-image.py on every release
-      tag: "8-7e28ba8"
+      tag: "10-b9db8ec"
       # -- REQUIRED: digest of that tag; updated by scripts/bump-image.py on every release
-      digest: sha256:ef4b9b6352b25df6f51c15f5d3f351345f8672e95955f04697efd41170aa6007
+      digest: sha256:75f7c8c3bedfba4de75a05366f17724f61a84d5e445a499075f7d972e8fc0958
     # -- REQUIRED: memory limit. The JVM uses up to 75% of it (-XX:MaxRAMPercentage=75)
     resources:
       limits: {memory: 512Mi}
