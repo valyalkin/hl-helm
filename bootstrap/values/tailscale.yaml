@@ -1,0 +1,3 @@
+# Homelab values for charts/infrastructure/tailscale (hl-budget-spec feature 005).
+# Only the node's address: VPN devices reach the homelab, never the rest of the home network.
+routes: ["10.0.0.100/32"]

@@ -1,0 +1,10 @@
+apiVersion: v2
+name: tailscale
+description: Tailscale subnet router. Gives the owner's tailnet devices a route to the homelab node's address (and nothing else), so apps work away from home with no open ports.
+type: application
+version: 0.1.0
+appVersion: "v1.104.4"
+dependencies:
+  - name: hl-common
+    version: "~0.1.0"
+    repository: "file://../../library/hl-common"

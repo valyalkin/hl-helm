@@ -29,6 +29,10 @@ install:
     chart: charts/infrastructure/ingress-tls
     namespace: ingress-tls
     values: bootstrap/values/ingress-tls.yaml
+  - name: tailscale
+    chart: charts/infrastructure/tailscale
+    namespace: tailscale
+    values: bootstrap/values/tailscale.yaml
 
 argocd:
   name: argocd

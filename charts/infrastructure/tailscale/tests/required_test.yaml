@@ -1,0 +1,11 @@
+suite: tailscale required values
+templates: [templates/tailscale.yaml]
+release: {name: tailscale, namespace: tailscale}
+tests:
+  - it: fails naming routes when none are set
+    asserts:
+      - failedTemplate: {errorPattern: "routes"}
+  - it: fails naming tags when they are emptied
+    set: {routes: ["10.0.0.100/32"], tags: []}
+    asserts:
+      - failedTemplate: {errorPattern: "tags"}

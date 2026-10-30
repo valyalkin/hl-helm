@@ -1,0 +1,62 @@
+# -- REQUIRED: CIDRs this gateway advertises to the tailnet. Keep it to the homelab node only, so
+# VPN devices cannot reach the rest of the home network. Example: `["10.0.0.100/32"]`
+routes: []
+# -- Machine name in the tailnet admin console
+hostname: homelab
+# -- REQUIRED: tags the gateway joins with. The OAuth client in Vault must be allowed to create
+# keys for them, and the tailnet policy must list them in `tagOwners` and `autoApprovers`
+tags: ["tag:homelab"]
+
+tailscale:
+  workload:
+    # -- One pod, never two: two copies sharing one node identity would fight over it. A
+    # StatefulSet with one replica stops the old pod before starting the new one
+    kind: StatefulSet
+    image:
+      registry: docker.io
+      owner: tailscale
+      name: tailscale
+      # -- Upstream version, pinned by digest
+      tag: v1.104.4
+      digest: sha256:ed6480b33c6eb67c9cbd203ed42b9fb57e361986725b6856def71b7a3d9e276c
+    # -- Memory limit; userspace networking for one route needs little
+    resources:
+      requests: {cpu: 10m, memory: 48Mi}
+      limits: {memory: 128Mi}
+    # -- The pod stores its node identity in Secret `tailscale-state` through the Kubernetes API
+    automountServiceAccountToken: true
+    # -- Writable directories for the read-only root filesystem (socket, HOME)
+    tmpDirs: [/tmp]
+    # -- The OAuth client secret becomes a non-ephemeral, pre-approved auth key at start (an OAuth
+    # secret alone would register an ephemeral node). The suffix is never stored anywhere. The
+    # variable is deliberately not TS_CLIENT_SECRET: containerboot treats that as its own OAuth mode
+    # and refuses it together with TS_AUTHKEY
+    command:
+      - /bin/sh
+      - -c
+      - 'export TS_AUTHKEY="${TAILSCALE_OAUTH_SECRET}?ephemeral=false&preauthorized=true"; exec /usr/local/bin/containerboot'
+    # -- Fixed containerboot settings; TS_ROUTES, TS_HOSTNAME and TS_EXTRA_ARGS come from the values above
+    env:
+      - {name: TS_USERSPACE, value: "true"}
+      - {name: TS_KUBE_SECRET, value: tailscale-state}
+      - {name: TS_SOCKET, value: /tmp/tailscaled.sock}
+      - {name: TS_ENABLE_HEALTH_CHECK, value: "true"}
+      - {name: TS_LOCAL_ADDR_PORT, value: "[::]:9002"}
+      - {name: HOME, value: /tmp}
+    probes:
+      liveness: {httpGet: {path: /healthz, port: health}, periodSeconds: 30, failureThreshold: 4}
+      readiness: {httpGet: {path: /healthz, port: health}, periodSeconds: 10}
+      startup: {httpGet: {path: /healthz, port: health}, periodSeconds: 5, failureThreshold: 60}
+  # -- Health endpoint only; the gateway makes outbound connections and serves nothing else
+  service:
+    ports: [{name: health, port: 9002}]
+  secrets:
+    # -- OAuth client secret (scope Auth Keys: Write, tag:homelab), written by the owner
+    auth:
+      vaultPath: infra/tailscale
+      keys: {client_secret: TAILSCALE_OAUTH_SECRET}
+
+# -- Vault binding rendered by hl-common (ServiceAccount `tailscale` + VaultAuth, role `edge`)
+vaultAuth:
+  role: edge
+  createNamespace: false
