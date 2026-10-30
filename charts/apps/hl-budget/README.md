@@ -1,8 +1,8 @@
 # hl-budget
 
-![Version: 0.2.10](https://img.shields.io/badge/Version-0.2.10-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2-548d0ff](https://img.shields.io/badge/AppVersion-2--548d0ff-informational?style=flat-square)
+![Version: 0.2.11](https://img.shields.io/badge/Version-0.2.11-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2-548d0ff](https://img.shields.io/badge/AppVersion-2--548d0ff-informational?style=flat-square)
 
-HL Budget, a personal budgeting app — Next.js web app at / and Kotlin/Spring API at /api on one private host.
+HL Budget, a personal budgeting app — Next.js web app at / and Kotlin/Spring API at /api on budget.valyalkin.com (private).
 
 ## Requirements
 
@@ -16,9 +16,8 @@ HL Budget, a personal budgeting app — Next.js web app at / and Kotlin/Spring A
 |-----|------|---------|-------------|
 | backend.dependencies | object | `{"postgres":{"credentials":{"keys":{"password":"SPRING_DATASOURCE_PASSWORD","username":"SPRING_DATASOURCE_USERNAME"},"vaultPath":"apps/hl-budget/postgres"},"host":"postgres-rw.postgres.svc.cluster.local","port":5432}}` | OPTIONAL: Postgres, by address; credentials generated into Vault by bootstrap/install.sh |
 | backend.ingress.enabled | bool | `true` | OPTIONAL: expose over HTTPS through Traefik |
-| backend.ingress.host | string | `"hl-budget.home.example"` | REQUIRED when enabled: public hostname, shared with `frontend` |
+| backend.ingress.host | string | `"budget.valyalkin.com"` | REQUIRED when enabled: hostname, shared with `frontend`. Served with Traefik's default certificate (the shared *.valyalkin.com wildcard from infrastructure/ingress-tls) |
 | backend.ingress.path | string | `"/api"` | OPTIONAL: path prefix, not stripped; the backend serves under /api |
-| backend.ingress.tls | object | `{"secretName":"hl-budget-frontend-tls"}` | OPTIONAL: certificate Secret, synced from Vault by `frontend.secrets.tls` |
 | backend.service | object | `{"ports":[{"name":"http","port":80,"targetPort":8080}]}` | REQUIRED: port 80 in the cluster, the container's port as targetPort |
 | backend.workload.env | list | `[{"name":"SPRING_DATASOURCE_URL","value":"jdbc:postgresql://postgres-rw.postgres.svc.cluster.local:5432/hl_budget"},{"name":"HLBUDGET_AUTH_ISSUER","value":"https://k8xv92p.ca.auth0.com/"},{"name":"HLBUDGET_AUTH_AUDIENCE","value":"https://api.hl-budget.example"},{"name":"HLBUDGET_AUTH_JWKSETURI","value":"https://k8xv92p.ca.auth0.com/.well-known/jwks.json"},{"name":"HLBUDGET_AUTH_CLAIMSNAMESPACE","value":"https://hl-budget/"},{"name":"HLBUDGET_MONEY_CURRENCY","value":"CAD"},{"name":"HLBUDGET_TIMEZONE","value":"America/Toronto"},{"name":"LOGGING_LEVEL_ROOT","value":"INFO"},{"name":"SPRINGDOC_API_DOCS_ENABLED","value":"false"},{"name":"SPRINGDOC_SWAGGER_UI_ENABLED","value":"false"}]` | OPTIONAL: plain environment variables (never secrets) |
 | backend.workload.image.digest | string | `"sha256:75f7c8c3bedfba4de75a05366f17724f61a84d5e445a499075f7d972e8fc0958"` | REQUIRED: digest of that tag; updated by scripts/bump-image.py on every release |
@@ -28,12 +27,11 @@ HL Budget, a personal budgeting app — Next.js web app at / and Kotlin/Spring A
 | backend.workload.resources | object | `{"limits":{"memory":"512Mi"}}` | REQUIRED: memory limit. The JVM uses up to 75% of it (-XX:MaxRAMPercentage=75) |
 | backend.workload.tmpDirs | list | `["/tmp"]` | OPTIONAL: writable directories (the root filesystem is read-only) |
 | frontend.ingress.enabled | bool | `true` | OPTIONAL: expose over HTTPS through Traefik |
-| frontend.ingress.host | string | `"hl-budget.home.example"` | REQUIRED when enabled: public hostname, shared with `backend` |
+| frontend.ingress.host | string | `"budget.valyalkin.com"` | REQUIRED when enabled: hostname, shared with `backend`. Served with Traefik's default certificate (the shared *.valyalkin.com wildcard) |
 | frontend.ingress.path | string | `"/"` | OPTIONAL: path prefix; everything not under /api |
-| frontend.ingress.tls | object | `{"secretName":"hl-budget-frontend-tls"}` | OPTIONAL: certificate Secret, synced from Vault by `secrets.tls` |
-| frontend.secrets | object | `{"auth0":{"keys":{"auth0_client_secret":"AUTH0_CLIENT_SECRET","auth0_secret":"AUTH0_SECRET"},"vaultPath":"apps/hl-budget/frontend"},"tls":{"keys":{},"rolloutRestart":false,"type":"kubernetes.io/tls","vaultPath":"apps/hl-budget/tls"}}` | OPTIONAL: Vault secrets. The user writes the values; the chart only names the paths |
+| frontend.secrets | object | `{"auth0":{"keys":{"auth0_client_secret":"AUTH0_CLIENT_SECRET","auth0_secret":"AUTH0_SECRET"},"vaultPath":"apps/hl-budget/frontend"}}` | OPTIONAL: Vault secrets. The user writes the values; the chart only names the paths |
 | frontend.service | object | `{"ports":[{"name":"http","port":80,"targetPort":8080}]}` | REQUIRED: port 80 in the cluster, the container's port as targetPort |
-| frontend.workload.env | list | `[{"name":"APP_BASE_URL","value":"https://hl-budget.home.example"},{"name":"API_BASE_URL","value":"http://hl-budget-backend"},{"name":"API_TIMEOUT_MS","value":"5000"},{"name":"AUTH0_DOMAIN","value":"k8xv92p.ca.auth0.com"},{"name":"AUTH0_CLIENT_ID","value":"zvyqOJ4IaTklTQQl0lLuL1yL2reyScy4"},{"name":"AUTH0_AUDIENCE","value":"https://api.hl-budget.example"}]` | OPTIONAL: plain environment variables (never secrets) |
+| frontend.workload.env | list | `[{"name":"APP_BASE_URL","value":"https://budget.valyalkin.com"},{"name":"API_BASE_URL","value":"http://hl-budget-backend"},{"name":"API_TIMEOUT_MS","value":"5000"},{"name":"AUTH0_DOMAIN","value":"k8xv92p.ca.auth0.com"},{"name":"AUTH0_CLIENT_ID","value":"zvyqOJ4IaTklTQQl0lLuL1yL2reyScy4"},{"name":"AUTH0_AUDIENCE","value":"https://api.hl-budget.example"}]` | OPTIONAL: plain environment variables (never secrets) |
 | frontend.workload.image.digest | string | `"sha256:3cc0fc002e13386ff8ee1f463356e7b5c44954917180ceceadd5868324608f03"` | REQUIRED: digest of that tag; updated by scripts/bump-image.py on every release |
 | frontend.workload.image.name | string | `"hl-budget-frontend"` | REQUIRED: image name in ghcr.io/valyalkin. Set by the release workflow from homelab.yaml |
 | frontend.workload.image.tag | string | `"14-66b7960"` | REQUIRED: version tag; updated by scripts/bump-image.py on every release |

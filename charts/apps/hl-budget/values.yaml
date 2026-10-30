@@ -1,5 +1,5 @@
-# Two services share one private host: `frontend` (Next.js) at `/` and `backend` (Spring Boot)
-# at `/api`. Spec: valyalkin/hl-budget-spec specs/001-platform-foundation/contracts/deployment.md.
+# Two services share one host, budget.valyalkin.com: `frontend` (Next.js) at `/` and `backend`
+# (Spring Boot) at `/api`. Private: reachable at home and over Tailscale only (hl-budget-spec 005). Spec: valyalkin/hl-budget-spec specs/001-platform-foundation/contracts/deployment.md.
 # Parameters marked REQUIRED must be set; the rest have safe defaults.
 backend:
   workload:
@@ -41,12 +41,11 @@ backend:
   ingress:
     # -- OPTIONAL: expose over HTTPS through Traefik
     enabled: true
-    # -- REQUIRED when enabled: public hostname, shared with `frontend`
-    host: hl-budget.home.example
+    # -- REQUIRED when enabled: hostname, shared with `frontend`. Served with Traefik's default
+    # certificate (the shared *.valyalkin.com wildcard from infrastructure/ingress-tls)
+    host: budget.valyalkin.com
     # -- OPTIONAL: path prefix, not stripped; the backend serves under /api
     path: /api
-    # -- OPTIONAL: certificate Secret, synced from Vault by `frontend.secrets.tls`
-    tls: {secretName: hl-budget-frontend-tls}
   # -- OPTIONAL: Postgres, by address; credentials generated into Vault by bootstrap/install.sh
   dependencies:
     postgres:
@@ -69,7 +68,7 @@ frontend:
     tmpDirs: [/tmp, /app/.next/cache]
     # -- OPTIONAL: plain environment variables (never secrets)
     env:
-      - {name: APP_BASE_URL, value: "https://hl-budget.home.example"}
+      - {name: APP_BASE_URL, value: "https://budget.valyalkin.com"}
       - {name: API_BASE_URL, value: "http://hl-budget-backend"}
       - {name: API_TIMEOUT_MS, value: "5000"}
       - {name: AUTH0_DOMAIN, value: "k8xv92p.ca.auth0.com"}
@@ -87,14 +86,11 @@ frontend:
   ingress:
     # -- OPTIONAL: expose over HTTPS through Traefik
     enabled: true
-    # -- REQUIRED when enabled: public hostname, shared with `backend`
-    host: hl-budget.home.example
+    # -- REQUIRED when enabled: hostname, shared with `backend`. Served with Traefik's default
+    # certificate (the shared *.valyalkin.com wildcard)
+    host: budget.valyalkin.com
     # -- OPTIONAL: path prefix; everything not under /api
     path: /
-    # -- OPTIONAL: certificate Secret, synced from Vault by `secrets.tls`
-    tls: {secretName: hl-budget-frontend-tls}
   # -- OPTIONAL: Vault secrets. The user writes the values; the chart only names the paths
   secrets:
     auth0: {vaultPath: apps/hl-budget/frontend, keys: {auth0_client_secret: AUTH0_CLIENT_SECRET, auth0_secret: AUTH0_SECRET}}
-    # Certificate for the host (keys tls.crt, tls.key). Until it exists Traefik serves its default
-    tls: {vaultPath: apps/hl-budget/tls, type: kubernetes.io/tls, keys: {}, rolloutRestart: false}
