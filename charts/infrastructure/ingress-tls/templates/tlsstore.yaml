@@ -1,0 +1,13 @@
+{{- include "ingress-tls.validate" . -}}
+# Traefik serves this certificate for every route whose Ingress names no secret of its own
+# (hl-common leaves ingress.tls.secretName unset by default).
+apiVersion: traefik.io/v1alpha1
+kind: TLSStore
+metadata:
+  name: default
+  namespace: {{ include "ingress-tls.storeNamespace" . }}
+  labels:
+    {{- include "ingress-tls.labels" (dict "root" . "name" "default") | nindent 4 }}
+spec:
+  defaultCertificate:
+    secretName: wildcard-tls

@@ -1,0 +1,113 @@
+suite: ingress-tls (contract 005 §3)
+templates:
+  - templates/namespace.yaml
+  - templates/cloudflare-secret.yaml
+  - templates/issuer.yaml
+  - templates/certificate.yaml
+  - templates/tlsstore.yaml
+  - templates/helmchartconfig.yaml
+release: {name: ingress-tls, namespace: ingress-tls}
+set:
+  domain: example.com
+tests:
+  - it: rejects a domain with a scheme or wildcard
+    set: {domain: "*.example.com"}
+    asserts:
+      - failedTemplate: {}
+
+  - it: rejects an unknown ACME server
+    set: {acme.server: testing}
+    asserts:
+      - failedTemplate: {}
+
+  - it: issues one certificate for the apex and the wildcard
+    template: templates/certificate.yaml
+    asserts:
+      - isKind: {of: Certificate}
+      - equal: {path: metadata.name, value: wildcard}
+      - equal: {path: metadata.namespace, value: ingress-tls}
+      - equal: {path: spec.dnsNames, value: [example.com, "*.example.com"]}
+      - equal: {path: spec.secretName, value: wildcard-tls}
+      - equal: {path: spec.issuerRef, value: {name: letsencrypt, kind: Issuer, group: cert-manager.io}}
+
+  - it: uses the Let's Encrypt staging server by default
+    template: templates/issuer.yaml
+    asserts:
+      - isKind: {of: Issuer}
+      - equal: {path: metadata.name, value: letsencrypt}
+      - equal: {path: spec.acme.server, value: "https://acme-staging-v02.api.letsencrypt.org/directory"}
+      - notExists: {path: spec.acme.email}
+
+  - it: sets the ACME contact email only when given
+    template: templates/issuer.yaml
+    set: {acme.email: owner@example.com}
+    asserts:
+      - equal: {path: spec.acme.email, value: owner@example.com}
+
+  - it: uses the production server when asked
+    template: templates/issuer.yaml
+    set: {acme.server: production}
+    asserts:
+      - equal: {path: spec.acme.server, value: "https://acme-v02.api.letsencrypt.org/directory"}
+
+  - it: solves DNS-01 through Cloudflare with the synced token
+    template: templates/issuer.yaml
+    asserts:
+      - equal:
+          path: spec.acme.solvers[0].dns01.cloudflare.apiTokenSecretRef
+          value: {name: cloudflare-api-token, key: api_token}
+
+  - it: syncs the Cloudflare token from Vault with role edge
+    template: templates/cloudflare-secret.yaml
+    asserts:
+      - isKind: {of: VaultStaticSecret}
+      - equal: {path: spec.vaultAuthRef, value: ingress-tls}
+      - equal: {path: spec.mount, value: kv}
+      - equal: {path: spec.path, value: infra/cloudflare}
+      - equal: {path: spec.destination.name, value: cloudflare-api-token}
+      - isNull: {path: spec.rolloutRestartTargets}
+
+  - it: binds Vault through role edge
+    template: templates/namespace.yaml
+    documentSelector: {path: kind, value: VaultAuth}
+    asserts:
+      - equal: {path: spec.kubernetes.role, value: edge}
+      - equal: {path: spec.kubernetes.serviceAccount, value: ingress-tls}
+
+  - it: makes the wildcard Traefik's default certificate
+    template: templates/tlsstore.yaml
+    asserts:
+      - isKind: {of: TLSStore}
+      - equal: {path: metadata.name, value: default}
+      - equal: {path: metadata.namespace, value: ingress-tls}
+      - equal: {path: spec.defaultCertificate.secretName, value: wildcard-tls}
+
+  - it: can place the store and certificate in kube-system instead
+    set: {tlsStore.namespace: kube-system}
+    asserts:
+      - equal: {path: metadata.namespace, value: kube-system}
+        template: templates/tlsstore.yaml
+      - equal: {path: metadata.namespace, value: kube-system}
+        template: templates/certificate.yaml
+
+  - it: redirects HTTP to HTTPS through the k3s Traefik HelmChartConfig
+    template: templates/helmchartconfig.yaml
+    asserts:
+      - isKind: {of: HelmChartConfig}
+      - equal: {path: metadata.name, value: traefik}
+      - equal: {path: metadata.namespace, value: kube-system}
+      - matchRegex:
+          path: spec.valuesContent
+          pattern: "(?s)web:.*http:.*redirections:.*entryPoint:.*to: websecure.*scheme: https.*permanent: true"
+
+  - it: renders no HelmChartConfig when the redirect is off
+    template: templates/helmchartconfig.yaml
+    set: {redirectHttpToHttps: false}
+    asserts:
+      - hasDocuments: {count: 0}
+
+  - it: carries no secret material
+    template: templates/cloudflare-secret.yaml
+    asserts:
+      - notExists: {path: data}
+      - notExists: {path: stringData}

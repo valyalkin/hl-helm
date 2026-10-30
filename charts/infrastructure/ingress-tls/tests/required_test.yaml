@@ -1,0 +1,8 @@
+suite: ingress-tls required values
+templates: [templates/certificate.yaml]
+release: {name: ingress-tls, namespace: ingress-tls}
+tests:
+  - it: fails naming domain when it is unset
+    set: {}
+    asserts:
+      - failedTemplate: {errorPattern: "domain"}

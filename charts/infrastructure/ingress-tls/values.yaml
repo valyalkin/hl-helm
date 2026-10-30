@@ -1,0 +1,34 @@
+# -- REQUIRED: the homelab domain, without scheme or wildcard. The certificate covers it and
+# every first-level name under it. Set in bootstrap/values/ingress-tls.yaml. Example: `example.com`
+domain: ""
+
+acme:
+  # -- OPTIONAL: ACME account contact email. Left empty on purpose: Let's Encrypt no longer sends
+  # expiry emails, and this repository is public. Renewal health is reported by
+  # scripts/infra-status.sh instead
+  email: ""
+  # -- `staging` (safe default, untrusted certificates, generous rate limits) or `production`
+  server: staging
+
+cloudflare:
+  # -- Vault KV path of the Cloudflare API token (key `api_token`, permission Zone → DNS → Edit on
+  # this domain only). Written by the owner; this chart carries the path only
+  vaultPath: infra/cloudflare
+  # -- How often VSO re-reads the token, so a rotated token is picked up without a restart
+  refreshAfter: 1h
+
+# -- Render the k3s `HelmChartConfig` that makes Traefik redirect every HTTP request to HTTPS.
+# This chart owns the cluster's only Traefik HelmChartConfig
+redirectHttpToHttps: true
+
+tlsStore:
+  # -- Namespace of the default TLSStore and the Certificate (they must share it, because the store
+  # names the certificate Secret). Empty means the release namespace; use `kube-system` only if
+  # Traefik ignores a default store elsewhere
+  namespace: ""
+
+# -- Vault binding rendered by hl-common (ServiceAccount `ingress-tls` + VaultAuth, role `edge`).
+# The namespace itself is created by `helm --create-namespace`
+vaultAuth:
+  role: edge
+  createNamespace: false

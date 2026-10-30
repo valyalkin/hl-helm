@@ -1,0 +1,10 @@
+apiVersion: v2
+name: ingress-tls
+description: The homelab's shared trusted certificate for <domain> and *.<domain> (Let's Encrypt, DNS-01 via Cloudflare), served as Traefik's default certificate, plus the HTTP-to-HTTPS redirect.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+dependencies:
+  - name: hl-common
+    version: "~0.1.0"
+    repository: "file://../../library/hl-common"

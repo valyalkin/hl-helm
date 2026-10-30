@@ -1,0 +1,22 @@
+{{- include "ingress-tls.validate" . -}}
+{{- if .Values.redirectHttpToHttps }}
+# k3s configuration for its bundled Traefik: permanent redirect from :80 to :443 for every route.
+# Key path confirmed against traefik-40.1.5+up40.1.0 (hl-budget-spec 005 research R-005).
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+  labels:
+    {{- include "ingress-tls.labels" (dict "root" . "name" "traefik") | nindent 4 }}
+spec:
+  valuesContent: |-
+    ports:
+      web:
+        http:
+          redirections:
+            entryPoint:
+              to: websecure
+              scheme: https
+              permanent: true
+{{- end }}

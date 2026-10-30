@@ -1,0 +1,2 @@
+{{- include "ingress-tls.validate" . -}}
+{{ include "hl-common.namespace" . }}
