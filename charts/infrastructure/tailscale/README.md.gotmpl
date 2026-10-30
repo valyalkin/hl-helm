@@ -1,0 +1,39 @@
+# {{ template "chart.name" . }}
+
+Tailscale subnet router (hl-budget-spec feature 005, home and remote access). The owner's devices
+signed in to their tailnet get a route to the homelab node's address, and only that address, so
+`https://budget.valyalkin.com` and every other homelab app work away from home with **no port
+open on the home router**. Installed by `bootstrap/install.sh` after `ingress-tls`.
+
+How it works, the tailnet policy, and adding or removing a device: [`docs/remote-access.md`](../../../docs/remote-access.md).
+
+## Design
+
+- **Userspace networking** (`TS_USERSPACE=true`): no `NET_ADMIN`, no privileged init and no host
+  network. The pod runs as UID 10001 with a read-only root filesystem, like every homelab
+  workload. Traffic from the tailnet to `10.0.0.100` is dialled from the pod, and kube-proxy
+  delivers it to Traefik's LoadBalancer address.
+- **One StatefulSet replica**: two pods sharing one node identity would fight over it. A
+  StatefulSet stops the old pod before starting the new one.
+- **Identity in `Secret/tailscale-state`** (`TS_KUBE_SECRET`): restarts and upgrades keep the same
+  machine, with no new registration. The pod creates the Secret on first start (Role: `create`
+  on Secrets in this namespace, `get`/`update`/`patch` only on this one). Helm doesn't own it,
+  so an uninstall keeps it. Delete it only to register the gateway afresh.
+- **Credential**: a Tailscale OAuth client (scope *Auth Keys: Write*, tag `tag:homelab`) from
+  Vault `kv/infra/tailscale` (key `client_secret`, role `edge`). At start it becomes a
+  non-ephemeral, pre-approved auth key, and only first registration uses it. Tagged machines
+  have no key expiry, so nobody signs in again periodically.
+- **Policy dependency**: the tailnet policy must list `tag:homelab` in `tagOwners` and approve its
+  route in `autoApprovers`. Otherwise the route waits for a click in the admin console.
+
+## Storage, backup and restore
+
+No volume. The node identity is the `tailscale-state` Secret; if it is lost the gateway simply
+registers again as a new machine (remove the old one in the admin console).
+
+## Deviation from the constitution
+
+None. The Service on port 9002 exists because hl-common renders one per workload. It only serves
+the health endpoint inside the cluster.
+
+{{ template "chart.valuesSection" . }}

@@ -1,0 +1,35 @@
+# containerboot keeps the node identity in Secret tailscale-state (TS_KUBE_SECRET) and creates it on
+# first start. Kubernetes cannot limit "create" to one name, so the pod may create Secrets in this
+# namespace, but may read and update only tailscale-state. Helm does not own that Secret, so
+# upgrades and uninstalls never delete the identity.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tailscale
+  labels:
+    {{- include "hl-common.labels" (dict "root" . "name" "tailscale") | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [create]
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [tailscale-state]
+    verbs: [get, update, patch]
+  - apiGroups: [""]
+    resources: [events]
+    verbs: [create, patch, get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tailscale
+  labels:
+    {{- include "hl-common.labels" (dict "root" . "name" "tailscale") | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: tailscale
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Release.Name }}

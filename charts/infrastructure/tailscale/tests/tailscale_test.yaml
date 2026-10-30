@@ -1,0 +1,116 @@
+suite: tailscale subnet router (contract 005 §4)
+templates:
+  - templates/namespace.yaml
+  - templates/tailscale.yaml
+  - templates/rbac.yaml
+release: {name: tailscale, namespace: tailscale}
+set:
+  routes: ["10.0.0.100/32"]
+tests:
+  - it: runs exactly one pod that is never doubled during a rollout
+    template: templates/tailscale.yaml
+    documentSelector: {path: kind, value: StatefulSet}
+    asserts:
+      - equal: {path: metadata.name, value: tailscale}
+      - equal: {path: spec.replicas, value: 1}
+
+  - it: configures userspace subnet routing for the route and tag
+    template: templates/tailscale.yaml
+    documentSelector: {path: kind, value: StatefulSet}
+    asserts:
+      - contains: {path: 'spec.template.spec.containers[0].env', content: {name: TS_USERSPACE, value: "true"}}
+      - contains: {path: 'spec.template.spec.containers[0].env', content: {name: TS_ROUTES, value: 10.0.0.100/32}}
+      - contains: {path: 'spec.template.spec.containers[0].env', content: {name: TS_HOSTNAME, value: homelab}}
+      - contains: {path: 'spec.template.spec.containers[0].env', content: {name: TS_KUBE_SECRET, value: tailscale-state}}
+      - contains: {path: 'spec.template.spec.containers[0].env', content: {name: TS_EXTRA_ARGS, value: "--advertise-tags=tag:homelab"}}
+      - contains: {path: 'spec.template.spec.containers[0].env', content: {name: TS_ENABLE_HEALTH_CHECK, value: "true"}}
+      - contains: {path: 'spec.template.spec.containers[0].env', content: {name: TS_LOCAL_ADDR_PORT, value: "[::]:9002"}}
+
+  - it: joins several routes with commas
+    template: templates/tailscale.yaml
+    documentSelector: {path: kind, value: StatefulSet}
+    set: {routes: ["10.0.0.100/32", "10.0.0.101/32"]}
+    asserts:
+      - contains: {path: 'spec.template.spec.containers[0].env', content: {name: TS_ROUTES, value: "10.0.0.100/32,10.0.0.101/32"}}
+
+  - it: reads the OAuth client secret from the VSO-synced Secret, never from values
+    template: templates/tailscale.yaml
+    documentSelector: {path: kind, value: StatefulSet}
+    asserts:
+      - contains:
+          path: 'spec.template.spec.containers[0].env'
+          content:
+            name: TAILSCALE_OAUTH_SECRET
+            valueFrom: {secretKeyRef: {name: tailscale-auth, key: client_secret}}
+      - matchRegex:
+          path: 'spec.template.spec.containers[0].command[2]'
+          pattern: 'TS_AUTHKEY="\$\{TAILSCALE_OAUTH_SECRET\}\?ephemeral=false&preauthorized=true"'
+
+  - it: syncs the OAuth client secret from Vault with role edge
+    template: templates/tailscale.yaml
+    documentSelector: {path: kind, value: VaultStaticSecret}
+    asserts:
+      - equal: {path: spec.path, value: infra/tailscale}
+      - equal: {path: spec.vaultAuthRef, value: tailscale}
+      - equal: {path: spec.destination.name, value: tailscale-auth}
+      - equal: {path: 'spec.rolloutRestartTargets[0].kind', value: StatefulSet}
+
+  - it: binds Vault through role edge
+    template: templates/namespace.yaml
+    documentSelector: {path: kind, value: VaultAuth}
+    asserts:
+      - equal: {path: spec.kubernetes.role, value: edge}
+
+  - it: runs hardened, with no extra privileges
+    template: templates/tailscale.yaml
+    documentSelector: {path: kind, value: StatefulSet}
+    asserts:
+      - equal: {path: spec.template.spec.securityContext.runAsUser, value: 10001}
+      - equal: {path: spec.template.spec.securityContext.runAsNonRoot, value: true}
+      - equal: {path: 'spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem', value: true}
+      - equal: {path: 'spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation', value: false}
+      - equal: {path: 'spec.template.spec.containers[0].securityContext.capabilities.drop', value: [ALL]}
+      - notExists: {path: 'spec.template.spec.containers[0].securityContext.capabilities.add'}
+      - notExists: {path: 'spec.template.spec.containers[0].securityContext.privileged'}
+      - notExists: {path: spec.template.spec.hostNetwork}
+
+  - it: probes the health endpoint and limits memory
+    template: templates/tailscale.yaml
+    documentSelector: {path: kind, value: StatefulSet}
+    asserts:
+      - equal: {path: 'spec.template.spec.containers[0].livenessProbe.httpGet', value: {path: /healthz, port: health}}
+      - equal: {path: 'spec.template.spec.containers[0].readinessProbe.httpGet', value: {path: /healthz, port: health}}
+      - exists: {path: 'spec.template.spec.containers[0].resources.limits.memory'}
+
+  - it: pins the image by digest
+    template: templates/tailscale.yaml
+    documentSelector: {path: kind, value: StatefulSet}
+    asserts:
+      - matchRegex: {path: 'spec.template.spec.containers[0].image', pattern: '^docker\.io/tailscale/tailscale(:v[0-9.]+)?@sha256:[0-9a-f]{64}$'}
+
+  - it: lets the pod update only its own state Secret
+    template: templates/rbac.yaml
+    documentSelector: {path: kind, value: Role}
+    asserts:
+      - contains:
+          path: rules
+          content: {apiGroups: [""], resources: [secrets], resourceNames: [tailscale-state], verbs: [get, update, patch]}
+      - contains:
+          path: rules
+          content: {apiGroups: [""], resources: [secrets], verbs: [create]}
+      - notContains:
+          path: rules
+          content: {apiGroups: [""], resources: [secrets], verbs: [get, update, patch]}
+      - notContains:
+          path: rules
+          content: {apiGroups: [""], resources: [secrets], verbs: [get, list, watch]}
+
+  - it: rejects a route that is not a CIDR
+    set: {routes: ["10.0.0.100"]}
+    asserts:
+      - failedTemplate: {}
+
+  - it: rejects a tag without the tag prefix
+    set: {tags: ["homelab"]}
+    asserts:
+      - failedTemplate: {}

@@ -1,0 +1,9 @@
+{{- if not .Values.routes }}{{ include "hl-common.fail" "required value \"routes\" is not set" }}{{ end -}}
+{{- if not .Values.tags }}{{ include "hl-common.fail" "required value \"tags\" is not set (an OAuth auth key needs a tag)" }}{{ end -}}
+{{- $v := deepCopy .Values.tailscale -}}
+{{- $env := list
+      (dict "name" "TS_ROUTES" "value" (join "," .Values.routes))
+      (dict "name" "TS_HOSTNAME" "value" .Values.hostname)
+      (dict "name" "TS_EXTRA_ARGS" "value" (printf "--advertise-tags=%s" (join "," .Values.tags))) -}}
+{{- $_ := set $v.workload "env" (concat (default list $v.workload.env) $env) -}}
+{{ include "hl-common.all" (dict "root" . "name" "tailscale" "values" $v) }}
