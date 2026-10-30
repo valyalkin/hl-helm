@@ -46,6 +46,17 @@ K -n ingress-tls get certificates -o json 2>/dev/null | jq -r '
   "\(.[0])\t\(.[1])\t\(.[2])\t\(.[3])\(.[4])"' | awk -F'\t' '{printf "%-12s %-7s %-22s %s\n", $1, $2, $3, $4}' \
   || echo "  (none: is ingress-tls installed?)"
 
+# The Tailscale gateway (feature 005): is it running, and what does tailscaled say about itself?
+echo
+echo "Tailscale gateway:"
+ts=$(K -n tailscale get pod tailscale-0 -o jsonpath='{.status.phase} ready={.status.containerStatuses[0].ready}' 2>/dev/null) \
+  && echo "  pod tailscale-0: $ts" || echo "  (not installed)"
+if [ -n "${ts:-}" ]; then
+  K -n tailscale exec tailscale-0 -- tailscale --socket=/tmp/tailscaled.sock status --json 2>/dev/null \
+    | jq -r '"  \(.Self.HostName) online=\(.Self.Online) routes=\((.Self.PrimaryRoutes // []) | join(",")) state=\(.BackendState)"' \
+    || echo "  status unavailable"
+fi
+
 echo
 echo "Unhealthy pods in infrastructure namespaces:"
 for ns in vault vault-secrets-operator cnpg-system postgres redis cert-manager ingress-tls tailscale argocd; do
