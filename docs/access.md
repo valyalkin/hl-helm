@@ -4,6 +4,9 @@ The k3s API and every service in the cluster are reachable only from the node it
 workstation you get to them through SSH. Nothing here opens a port on your network, and nothing
 here changes the cluster.
 
+Applications themselves (`https://<app>.valyalkin.com`) need none of this: they work from any
+device at home and over Tailscale away from home. See [`remote-access.md`](remote-access.md).
+
 The examples assume an SSH alias `homelab` for the node (`~/.ssh/config`) and the kubeconfig at
 `~/.kube/homelab.yaml`. Substitute your own names.
 

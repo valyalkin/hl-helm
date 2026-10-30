@@ -57,7 +57,7 @@ In short:
 - **One application, one chart, one namespace**, named for its directory.
 
 Start with [`docs/onboarding.md`](docs/onboarding.md) to deploy an application,
-[`docs/bootstrap.md`](docs/bootstrap.md) to rebuild the cluster, [`docs/access.md`](docs/access.md) to reach `kubectl`, Vault, Argo CD, Postgres and Redis from your workstation, and [`docs/tiers.md`](docs/tiers.md)
+[`docs/bootstrap.md`](docs/bootstrap.md) to rebuild the cluster, [`docs/access.md`](docs/access.md) to reach `kubectl`, Vault, Argo CD, Postgres and Redis from your workstation, [`docs/remote-access.md`](docs/remote-access.md) for app addresses, the shared certificate and Tailscale, and [`docs/tiers.md`](docs/tiers.md)
 for what each tier may depend on. Measured results are in
 [`docs/validation-results.md`](docs/validation-results.md).
 
