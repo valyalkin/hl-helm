@@ -2,7 +2,7 @@ apiVersion: v2
 name: nginx
 description: Reference application chart — a running nginx service and the directory operators copy to onboard a new application.
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "alpine"
 dependencies:
   - name: hl-common
@@ -13,4 +13,4 @@ annotations:
   # value shipped here fails rendering and names the parameter. Do not edit these two lines; the
   # guard is lifted automatically by renaming the chart.
   hl-common/reference-name: nginx
-  hl-common/placeholders: "web.workload.image.name=nginx-unprivileged web.ingress.host=nginx.home.example web.workload.image.digest=sha256:378d0c32f6562f7fd9629170797f57d2b953aa09be983b3daaf4809bb039ca00"
+  hl-common/placeholders: "web.workload.image.name=nginx-unprivileged web.ingress.host=nginx.valyalkin.com web.workload.image.digest=sha256:378d0c32f6562f7fd9629170797f57d2b953aa09be983b3daaf4809bb039ca00"

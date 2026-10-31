@@ -8,8 +8,10 @@ Helm charts for a single-node k3s homelab. This file stays consistent with
 - `charts/library/hl-common` — the shared foundation (library chart). All naming, labels, probes,
   limits, security context, TLS ingress, image rules, secrets and storage live here.
 - `charts/bootstrap/` (Vault, Argo CD) and `charts/infrastructure/` (VSO, CloudNativePG, Postgres,
-  Redis) are applied by `bootstrap/install.sh`. `charts/apps/` is applied by Argo CD from `main`.
-  Argo CD never manages the first two.
+  Redis, cert-manager, ingress-tls, Tailscale) are applied by `bootstrap/install.sh`.
+  `charts/apps/` is applied by Argo CD from `main`. Argo CD never manages the first two.
+- App hosts are `<name>.valyalkin.com` with `ingress.tls` unset: the shared wildcard certificate and
+  DNS record cover them (`docs/remote-access.md`). Chart tests live in `charts/*/*/tests/`.
 - `charts/apps/nginx` is the reference chart and copy source. One application = one chart = one
   namespace named for its directory.
 - Each service's code lives in its own repository. Its release workflow calls

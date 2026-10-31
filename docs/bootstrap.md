@@ -16,10 +16,25 @@ bootstrap/install.sh [--context <ctx>] [--keys-file <path>] [--repo-credential <
 ```
 
 In order, waiting for each to be healthy: Vault → Vault Secrets Operator → CloudNativePG →
-Postgres → Redis → Argo CD → the ApplicationSet. After Vault installs, the script initialises,
-unseals and configures it (`bootstrap/vault-init.sh`): the KV mount, Kubernetes auth, and the
-`apps`, `infra` and `provision` roles. From there Argo CD discovers every `charts/apps/*` chart
-and deploys it. Nothing else is run by hand.
+Postgres → Redis → cert-manager → ingress-tls → Tailscale → Argo CD → the ApplicationSet. After
+Vault installs, the script initialises, unseals and configures it (`bootstrap/vault-init.sh`):
+the KV mount, Kubernetes auth, and the `apps`, `infra`, `provision` and `edge` roles. From there
+Argo CD discovers every `charts/apps/*` chart and deploys it. Apart from the two credentials
+below, nothing else is run by hand.
+
+**Owner-written credentials.** `ingress-tls` and `tailscale` wait for two values only the owner
+can supply. On a cold rebuild Vault is empty, so write them right after Vault is initialised and
+before those two releases install, or their install times out and has to be re-run with
+`--only`:
+
+```sh
+vault kv put kv/infra/cloudflare api_token=-     # Cloudflare token: Zone · DNS · Edit, valyalkin.com only
+vault kv put kv/infra/tailscale  client_secret=- # Tailscale OAuth client: Auth Keys: Write, tag:homelab
+```
+
+Both can be re-created in the Cloudflare and Tailscale consoles if lost. The app secrets under
+`kv/apps/` can't: Vault has no backup yet, and a running cluster's VSO-synced Secrets are the only
+other copy.
 
 The repository is public, so Argo CD reads it anonymously. Pass `--repo-credential <file>` (a token
 or an SSH private key) to avoid anonymous rate limits during a cold rebuild or when the repository
@@ -53,6 +68,27 @@ bootstrap/vault-init.sh --keys-file <path>
 
 Workloads that were already running keep working: their Kubernetes Secrets persist, and sealing
 Vault stops only *new* syncs and rotations until it is unsealed.
+
+## Certificates
+
+One Let's Encrypt certificate, for `valyalkin.com` and `*.valyalkin.com`, is Traefik's default and
+serves every app (`charts/infrastructure/ingress-tls`).
+
+- **Renewal**: cert-manager renews at two thirds of the lifetime, about 30 days before expiry for
+  a 90-day certificate. It proves ownership by writing a `_acme-challenge` TXT record through the
+  Cloudflare API, so nothing has to be reachable from the internet.
+- **Where to look**: `scripts/infra-status.sh` prints *Certificates* with `READY`, the expiry date
+  and days left, flagged `RENEWAL OVERDUE` under 14 days. Detail:
+  `kubectl -n ingress-tls describe certificate wildcard` and its CertificateRequest, Order and
+  Challenge. A failed renewal leaves the old certificate serving until it expires.
+- **Rotating the Cloudflare token**: create a new token (Zone · DNS · Edit, this zone only), write
+  it to `kv/infra/cloudflare`, then revoke the old one. VSO picks it up within an hour.
+- **Forcing a renewal**: `cmctl renew -n ingress-tls wildcard`. Deleting Secret `wildcard-tls`
+  also works, but Traefik falls back to its self-signed certificate for the 2–3 minutes until the
+  new one is issued.
+- **Rebuilding from scratch**: install `ingress-tls` with `acme.server: staging`, wait for
+  `READY True`, then switch `bootstrap/values/ingress-tls.yaml` to `production` and apply again
+  (chart README). Let's Encrypt allows 5 identical certificates per week, so debug on staging.
 
 ## Upgrading an infrastructure or bootstrap chart
 

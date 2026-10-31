@@ -24,7 +24,7 @@ nginx image cannot do.
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | web.ingress.enabled | bool | `true` | OPTIONAL: expose the service over TLS. Example: `true` |
-| web.ingress.host | string | `"nginx.home.example"` | REQUIRED when ingress is enabled: public hostname, unique across charts. Example: `todo.home.lan` |
+| web.ingress.host | string | `"nginx.valyalkin.com"` | REQUIRED when ingress is enabled: hostname, one label under valyalkin.com, unique across charts. The wildcard DNS record and certificate already cover it; leave `tls` unset so Traefik serves the shared certificate. Example: `todo.valyalkin.com` |
 | web.service | object | `{"ports":[{"name":"http","port":80,"targetPort":8080}]}` | REQUIRED: the ports the service exposes. Example: `[{name: http, port: 80, targetPort: 8080}]` |
 | web.workload.image.digest | string | `"sha256:378d0c32f6562f7fd9629170797f57d2b953aa09be983b3daaf4809bb039ca00"` | OPTIONAL: pins the image by digest; wins over the tag. Example: `sha256:3782...` |
 | web.workload.image.name | string | `"nginx-unprivileged"` | REQUIRED: image name, without registry or owner. Example: `todo-backend` |

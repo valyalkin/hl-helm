@@ -9,7 +9,7 @@ truth: the cluster can be rebuilt from an empty node with `bootstrap/install.sh`
 |------|-----------|-----------|---------|
 | Library | `charts/library/` | consumed by other charts | `hl-common` |
 | Bootstrap | `charts/bootstrap/` | `bootstrap/install.sh` | Vault, Argo CD |
-| Infrastructure | `charts/infrastructure/` | `bootstrap/install.sh` | Vault Secrets Operator, CloudNativePG, Postgres, Redis |
+| Infrastructure | `charts/infrastructure/` | `bootstrap/install.sh` | Vault Secrets Operator, CloudNativePG, Postgres, Redis, cert-manager, ingress-tls, Tailscale |
 | Application | `charts/apps/` | Argo CD, auto-sync from `main` | one chart per application; `nginx` is the reference |
 
 ## How it fits together
@@ -23,7 +23,7 @@ flowchart LR
     op([Operator]) -- "bootstrap/install.sh" --> base
     subgraph base [Applied by script]
         direction TB
-        V[Vault] --> VSO[Vault Secrets Operator] --> DB[CloudNativePG + Postgres] --> R[Redis] --> A[Argo CD]
+        V[Vault] --> VSO[Vault Secrets Operator] --> DB[CloudNativePG + Postgres] --> R[Redis] --> CM[cert-manager + ingress-tls] --> TS[Tailscale] --> A[Argo CD]
     end
     dev([Developer]) -- "PR, merge" --> git[(GitHub: main)]
     git -- "charts/apps/*" --> A
@@ -36,7 +36,8 @@ come from Vault, never from Git, and traffic enters through Traefik.
 
 ```mermaid
 flowchart LR
-    user([Browser]) -- "HTTPS" --> T[Traefik ingress]
+    user([Browser, home or Tailscale]) -- "HTTPS app.valyalkin.com" --> T[Traefik ingress]
+    CERT[(wildcard-tls)] -. "default certificate" .-> T
     T --> app[Application pod]
     app -- "postgres-rw.postgres.svc:5432" --> PG[(Postgres)]
     app -- "redis.redis.svc:6379" --> RD[(Redis)]
@@ -68,7 +69,8 @@ See `specs/001-extensible-helm-charts/` for the specification, plan and tasks, a
 
 - k3s version: v1.36.5+k3s1 (Kubernetes 1.36, single control-plane node, Ubuntu 26.04 LTS, containerd 2.3.4) — recorded 2026-10-18
 - Storage classes: `local-path` (default, `rancher.io/local-path`, reclaim policy Delete, WaitForFirstConsumer)
-- Ingress: Traefik (k3s built-in), running in `kube-system` with svclb
+- Ingress: Traefik (k3s built-in), running in `kube-system` with svclb. Default certificate: the Let's Encrypt wildcard for `valyalkin.com` / `*.valyalkin.com` (`ingress-tls`); HTTP redirects to HTTPS
+- Names: Cloudflare DNS `*.valyalkin.com A 10.0.0.100`; remote access through the `tailscale` subnet router ([`docs/remote-access.md`](docs/remote-access.md))
 
 ## Validation
 

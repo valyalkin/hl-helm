@@ -184,19 +184,18 @@ Inside the cluster applications use `redis.redis.svc:6379`.
 ## 7. The reference application over HTTPS
 
 nginx is exposed through Traefik on the node's address, on ports 80 and 443, so it needs no
-tunnel. Its hostname is a placeholder (`charts/apps/nginx/values.yaml`), so make your workstation
-resolve it, either with `/etc/hosts` or per request:
+tunnel. Its name, `nginx.valyalkin.com`, resolves to the node through the wildcard DNS record, and
+Traefik serves the shared Let's Encrypt certificate, so nothing needs configuring on the
+workstation:
 
 ```bash
-echo "<node-ip> nginx.home.example" | sudo tee -a /etc/hosts
-curl -k https://nginx.home.example/
-# or, without editing /etc/hosts
-curl -k --resolve nginx.home.example:443:<node-ip> https://nginx.home.example/
+curl https://nginx.valyalkin.com/
+curl -sI http://nginx.valyalkin.com/        # 308 redirect to https
 ```
 
-`-k` is needed because Traefik serves its built-in self-signed certificate until an issuer is
-installed (`specs/001-extensible-helm-charts/research.md`, R-008). Plain HTTP on port 80 returns
-404 rather than redirecting.
+To test a name before its DNS exists, or to bypass the router's resolver, pin the address per
+request: `curl --resolve <app>.valyalkin.com:443:10.0.0.100 https://<app>.valyalkin.com/`. Away
+from home, the same commands work with Tailscale on ([`remote-access.md`](remote-access.md)).
 
 ## Security notes
 

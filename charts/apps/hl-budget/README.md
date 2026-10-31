@@ -1,6 +1,6 @@
 # hl-budget
 
-![Version: 0.2.11](https://img.shields.io/badge/Version-0.2.11-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2-548d0ff](https://img.shields.io/badge/AppVersion-2--548d0ff-informational?style=flat-square)
+![Version: 0.2.12](https://img.shields.io/badge/Version-0.2.12-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2-548d0ff](https://img.shields.io/badge/AppVersion-2--548d0ff-informational?style=flat-square)
 
 HL Budget, a personal budgeting app — Next.js web app at / and Kotlin/Spring API at /api on budget.valyalkin.com (private).
 

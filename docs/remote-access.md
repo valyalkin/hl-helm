@@ -56,6 +56,11 @@ hl-budget-spec `specs/005-home-and-remote-access/contracts/tailnet-policy.md`:
 - **What VPN devices can reach**: only `10.0.0.100:80` and `10.0.0.100:443`. No SSH, no
   Kubernetes API, and no other home device. `kubectl` still uses the SSH tunnel
   (`docs/access.md`).
+- **SSH at home with Tailscale on**: a device with Tailscale on sends **all** traffic for
+  `10.0.0.100` through the gateway, even at home, and the policy allows web only. So SSH and the
+  `kubectl` tunnel fail while Tailscale's routes are on. Before terminal work, turn off *Use
+  Tailscale subnets* in the Tailscale menu, or quit Tailscale. Opening port 22 through the VPN
+  was considered and declined.
 - **The gateway** (`tag:homelab`) can't start connections to the owner's devices.
 
 ## Devices
@@ -84,6 +89,7 @@ secret is in Vault `kv/infra/tailscale`, key `client_secret`.
 |---|---|
 | Works at home, not away | `scripts/infra-status.sh`: *Tailscale gateway* online with route `10.0.0.100/32`. In the admin console the route is approved, and the device has Tailscale on |
 | Away works, home doesn't, on one device | The home router may refuse DNS answers that point at a private address ("DNS rebind protection"). Compare `dig +short budget.valyalkin.com` with `dig +short budget.valyalkin.com @1.1.1.1`. Fix: add a rebind exception for `valyalkin.com` in the router, or keep Tailscale on at home on that device |
+| `ssh homelab` / `kubectl` times out at home | Tailscale is on and routing `10.0.0.100` through the web-only gateway. Turn off *Use Tailscale subnets* (or Tailscale) |
 | Certificate warning | `scripts/infra-status.sh`: *Certificates*, `wildcard READY True`, days left. Check that the app's Ingress has no `tls.secretName` of its own |
 | `http://` doesn't redirect | `kubectl -n kube-system get helmchartconfig traefik` (owned by `ingress-tls`) |
 
