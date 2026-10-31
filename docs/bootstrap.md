@@ -18,7 +18,9 @@ bootstrap/install.sh [--context <ctx>] [--keys-file <path>] [--repo-credential <
 In order, waiting for each to be healthy: Vault → Vault Secrets Operator → CloudNativePG →
 Postgres → Redis → cert-manager → ingress-tls → Tailscale → Argo CD → the ApplicationSet. After
 Vault installs, the script initialises, unseals and configures it (`bootstrap/vault-init.sh`):
-the KV mount, Kubernetes auth, and the `apps`, `infra`, `provision` and `edge` roles.
+the KV mount, Kubernetes auth, and the `apps`, `infra`, `provision` and `edge` roles. From there
+Argo CD discovers every `charts/apps/*` chart and deploys it. Apart from the two credentials
+below, nothing else is run by hand.
 
 **Owner-written credentials.** `ingress-tls` and `tailscale` wait for two values only the owner
 can supply. On a cold rebuild Vault is empty, so write them right after Vault is initialised and
@@ -32,8 +34,7 @@ vault kv put kv/infra/tailscale  client_secret=- # Tailscale OAuth client: Auth 
 
 Both can be re-created in the Cloudflare and Tailscale consoles if lost. The app secrets under
 `kv/apps/` can't: Vault has no backup yet, and a running cluster's VSO-synced Secrets are the only
-other copy. From there Argo CD discovers every `charts/apps/*` chart
-and deploys it. Nothing else is run by hand.
+other copy.
 
 The repository is public, so Argo CD reads it anonymously. Pass `--repo-credential <file>` (a token
 or an SSH private key) to avoid anonymous rate limits during a cold rebuild or when the repository
