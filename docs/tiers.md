@@ -5,7 +5,7 @@ Charts are grouped by what they depend on, and the grouping is the directory lay
 | Tier | Directory | May depend on | Applied by | Members |
 |------|-----------|---------------|-----------|---------|
 | Bootstrap | `charts/bootstrap/` | nothing in the cluster | `bootstrap/install.sh` | Vault, Argo CD |
-| Infrastructure | `charts/infrastructure/` | bootstrap | `bootstrap/install.sh` | Vault Secrets Operator, CloudNativePG, Postgres, Redis |
+| Infrastructure | `charts/infrastructure/` | bootstrap | `bootstrap/install.sh` | Vault Secrets Operator, CloudNativePG, Postgres, Redis, cert-manager, ingress-tls, Tailscale |
 | Application | `charts/apps/` | bootstrap, infrastructure | Argo CD, auto-sync from `main` | one chart per application (`nginx` is the reference) |
 
 `charts/library/hl-common` is consumed by charts, not deployed.

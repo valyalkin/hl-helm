@@ -34,9 +34,13 @@ discovers the directory on its own — there is no deployment manifest to write.
    | `web.workload.resources.limits.memory` | a memory limit; there is no default |
    | `web.service.ports` | the port(s) the container listens on |
 | `web.workload.args` / `tmpDirs` | only if your image needs flags or writable directories (the root filesystem is read-only) |
-   | `web.ingress.host` | the public hostname (unique across charts; a clash fails CI) |
+   | `web.ingress.host` | `<name>.valyalkin.com`: one label under the domain, unique across charts (a clash fails CI) |
 
-   Probes, security context, resource requests, labels and TLS are filled in for you.
+   Probes, security context, resource requests, labels and TLS are filled in for you. Leave
+   `web.ingress.tls` unset: Traefik then serves the shared `*.valyalkin.com` certificate, and the
+   wildcard DNS record already points every name at the node, so a new app needs **no DNS or
+   certificate step**. The app is private: reachable at home and over Tailscale, not from the
+   internet ([`remote-access.md`](remote-access.md)).
 
 4. **Check it locally.**
 
