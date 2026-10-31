@@ -1,6 +1,6 @@
 # hl-budget
 
-![Version: 0.2.12](https://img.shields.io/badge/Version-0.2.12-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2-548d0ff](https://img.shields.io/badge/AppVersion-2--548d0ff-informational?style=flat-square)
+![Version: 0.2.13](https://img.shields.io/badge/Version-0.2.13-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2-548d0ff](https://img.shields.io/badge/AppVersion-2--548d0ff-informational?style=flat-square)
 
 HL Budget, a personal budgeting app — Next.js web app at / and Kotlin/Spring API at /api on budget.valyalkin.com (private).
 
@@ -32,9 +32,9 @@ HL Budget, a personal budgeting app — Next.js web app at / and Kotlin/Spring A
 | frontend.secrets | object | `{"auth0":{"keys":{"auth0_client_secret":"AUTH0_CLIENT_SECRET","auth0_secret":"AUTH0_SECRET"},"vaultPath":"apps/hl-budget/frontend"}}` | OPTIONAL: Vault secrets. The user writes the values; the chart only names the paths |
 | frontend.service | object | `{"ports":[{"name":"http","port":80,"targetPort":8080}]}` | REQUIRED: port 80 in the cluster, the container's port as targetPort |
 | frontend.workload.env | list | `[{"name":"APP_BASE_URL","value":"https://budget.valyalkin.com"},{"name":"API_BASE_URL","value":"http://hl-budget-backend"},{"name":"API_TIMEOUT_MS","value":"5000"},{"name":"AUTH0_DOMAIN","value":"k8xv92p.ca.auth0.com"},{"name":"AUTH0_CLIENT_ID","value":"zvyqOJ4IaTklTQQl0lLuL1yL2reyScy4"},{"name":"AUTH0_AUDIENCE","value":"https://api.hl-budget.example"}]` | OPTIONAL: plain environment variables (never secrets) |
-| frontend.workload.image.digest | string | `"sha256:3cc0fc002e13386ff8ee1f463356e7b5c44954917180ceceadd5868324608f03"` | REQUIRED: digest of that tag; updated by scripts/bump-image.py on every release |
+| frontend.workload.image.digest | string | `"sha256:f596e5bc6606dc5cdbd1831135af95aaa57b643afd5e5b6f74c99b6145edbfd5"` | REQUIRED: digest of that tag; updated by scripts/bump-image.py on every release |
 | frontend.workload.image.name | string | `"hl-budget-frontend"` | REQUIRED: image name in ghcr.io/valyalkin. Set by the release workflow from homelab.yaml |
-| frontend.workload.image.tag | string | `"14-66b7960"` | REQUIRED: version tag; updated by scripts/bump-image.py on every release |
+| frontend.workload.image.tag | string | `"17-ac055d4"` | REQUIRED: version tag; updated by scripts/bump-image.py on every release |
 | frontend.workload.probes | object | `{"liveness":{"httpGet":{"path":"/healthz","port":"http"},"periodSeconds":10},"readiness":{"httpGet":{"path":"/readyz","port":"http"},"periodSeconds":5},"startup":{"failureThreshold":30,"httpGet":{"path":"/healthz","port":"http"},"periodSeconds":2}}` | OPTIONAL: HTTP probes |
 | frontend.workload.resources | object | `{"limits":{"memory":"256Mi"}}` | REQUIRED: memory limit for the Next.js standalone server |
 | frontend.workload.tmpDirs | list | `["/tmp","/app/.next/cache"]` | OPTIONAL: writable directories (the root filesystem is read-only) |
