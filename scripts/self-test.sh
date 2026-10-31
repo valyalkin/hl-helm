@@ -68,7 +68,7 @@ reset; rm -rf charts/apps/todo
 cp -R charts/apps/nginx charts/apps/dup && rm -rf charts/apps/dup/charts charts/apps/dup/Chart.lock
 sed -i.bak -e 's/^name: nginx/name: dup/' -e '/^annotations:/,$d' charts/apps/dup/Chart.yaml && rm charts/apps/dup/Chart.yaml.bak
 helm dependency update charts/apps/dup >/dev/null
-expect "duplicate ingress host" "nginx.home.example" "charts/apps/dup" python3 tests/policy/collisions.py
+expect "duplicate ingress host" "nginx.valyalkin.com" "charts/apps/dup" python3 tests/policy/collisions.py
 reset; rm -rf charts/apps/dup
 
 # 9. a failing chart-level unit test (charts/<tier>/<name>/tests/)

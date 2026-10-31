@@ -25,5 +25,7 @@ web:
   ingress:
     # -- OPTIONAL: expose the service over TLS. Example: `true`
     enabled: true
-    # -- REQUIRED when ingress is enabled: public hostname, unique across charts. Example: `todo.home.lan`
-    host: nginx.home.example
+    # -- REQUIRED when ingress is enabled: hostname, one label under valyalkin.com, unique across
+    # charts. The wildcard DNS record and certificate already cover it; leave `tls` unset so Traefik
+    # serves the shared certificate. Example: `todo.valyalkin.com`
+    host: nginx.valyalkin.com
