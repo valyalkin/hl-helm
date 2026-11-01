@@ -1,6 +1,6 @@
 # hl-budget
 
-![Version: 0.2.13](https://img.shields.io/badge/Version-0.2.13-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2-548d0ff](https://img.shields.io/badge/AppVersion-2--548d0ff-informational?style=flat-square)
+![Version: 0.2.14](https://img.shields.io/badge/Version-0.2.14-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2-548d0ff](https://img.shields.io/badge/AppVersion-2--548d0ff-informational?style=flat-square)
 
 HL Budget, a personal budgeting app — Next.js web app at / and Kotlin/Spring API at /api on budget.valyalkin.com (private).
 
@@ -20,9 +20,9 @@ HL Budget, a personal budgeting app — Next.js web app at / and Kotlin/Spring A
 | backend.ingress.path | string | `"/api"` | OPTIONAL: path prefix, not stripped; the backend serves under /api |
 | backend.service | object | `{"ports":[{"name":"http","port":80,"targetPort":8080}]}` | REQUIRED: port 80 in the cluster, the container's port as targetPort |
 | backend.workload.env | list | `[{"name":"SPRING_DATASOURCE_URL","value":"jdbc:postgresql://postgres-rw.postgres.svc.cluster.local:5432/hl_budget"},{"name":"HLBUDGET_AUTH_ISSUER","value":"https://k8xv92p.ca.auth0.com/"},{"name":"HLBUDGET_AUTH_AUDIENCE","value":"https://api.hl-budget.example"},{"name":"HLBUDGET_AUTH_JWKSETURI","value":"https://k8xv92p.ca.auth0.com/.well-known/jwks.json"},{"name":"HLBUDGET_AUTH_CLAIMSNAMESPACE","value":"https://hl-budget/"},{"name":"HLBUDGET_MONEY_CURRENCY","value":"CAD"},{"name":"HLBUDGET_TIMEZONE","value":"America/Toronto"},{"name":"LOGGING_LEVEL_ROOT","value":"INFO"},{"name":"SPRINGDOC_API_DOCS_ENABLED","value":"false"},{"name":"SPRINGDOC_SWAGGER_UI_ENABLED","value":"false"}]` | OPTIONAL: plain environment variables (never secrets) |
-| backend.workload.image.digest | string | `"sha256:75f7c8c3bedfba4de75a05366f17724f61a84d5e445a499075f7d972e8fc0958"` | REQUIRED: digest of that tag; updated by scripts/bump-image.py on every release |
+| backend.workload.image.digest | string | `"sha256:9eed898181ae87d596c0b7ba838c203d37e1dd8d5585d9781b553638b09f566e"` | REQUIRED: digest of that tag; updated by scripts/bump-image.py on every release |
 | backend.workload.image.name | string | `"hl-budget-backend"` | REQUIRED: image name in ghcr.io/valyalkin. Set by the release workflow from homelab.yaml |
-| backend.workload.image.tag | string | `"10-b9db8ec"` | REQUIRED: version tag; updated by scripts/bump-image.py on every release |
+| backend.workload.image.tag | string | `"12-d39e987"` | REQUIRED: version tag; updated by scripts/bump-image.py on every release |
 | backend.workload.probes | object | `{"liveness":{"httpGet":{"path":"/healthz","port":"http"},"periodSeconds":10},"readiness":{"httpGet":{"path":"/readyz","port":"http"},"periodSeconds":5},"startup":{"failureThreshold":60,"httpGet":{"path":"/healthz","port":"http"},"periodSeconds":2}}` | OPTIONAL: HTTP probes. Startup allows 2 minutes for the JVM and Flyway |
 | backend.workload.resources | object | `{"limits":{"memory":"512Mi"}}` | REQUIRED: memory limit. The JVM uses up to 75% of it (-XX:MaxRAMPercentage=75) |
 | backend.workload.tmpDirs | list | `["/tmp"]` | OPTIONAL: writable directories (the root filesystem is read-only) |
