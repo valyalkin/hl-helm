@@ -58,9 +58,9 @@ frontend:
       # -- REQUIRED: image name in ghcr.io/valyalkin. Set by the release workflow from homelab.yaml
       name: hl-budget-frontend
       # -- REQUIRED: version tag; updated by scripts/bump-image.py on every release
-      tag: "27-c322164"
+      tag: "29-48133d3"
       # -- REQUIRED: digest of that tag; updated by scripts/bump-image.py on every release
-      digest: sha256:3732951853999347ee4e3ffaf9f4886f320880b41862108ff87e696bbf46a1f1
+      digest: sha256:4b5ec00a9e20f6c4c98c9bd605c2272052a36d63d18d59f9168d00fcaffb3d00
     # -- REQUIRED: memory limit for the Next.js standalone server
     resources:
       limits: {memory: 256Mi}
