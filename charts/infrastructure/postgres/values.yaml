@@ -8,6 +8,13 @@ cluster:
   resources:
     requests: {cpu: 100m, memory: 256Mi}
     limits: {memory: 512Mi}
+  # Run the Postgres pods without an AppArmor profile. Needed on Ubuntu kernels >= 7.0.0-43, where
+  # AppArmor stacking stops Postgres processes signalling each other, so crash recovery fails with
+  # "could not signal for checkpoint: Permission denied" (hl-budget-spec 012). Every other pod and
+  # container protection is kept. Turn it off once
+  # `journalctl -k | grep 'DENIED.*signal.*comm="postgres"'` stays empty on a new kernel.
+  # -- Run the Postgres pods AppArmor-unconfined (workaround for the kernel >= 7.0.0-43 regression; see "AppArmor exemption")
+  appArmorUnconfined: false
 
 # One database and one role per application. Adding an application's database is adding a line.
 # `name` is the database and role (lower case, digits, underscores). `namespace` is the owning

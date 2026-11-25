@@ -52,14 +52,50 @@ managed role. Requires Vault to be initialised, unsealed and configured
 - Single instance on a single node: there is no failover. A node loss is recovered from the
   volume or a dump.
 
+## AppArmor exemption
+
+`cluster.appArmorUnconfined: true` runs the Postgres pods without an AppArmor profile. The chart
+default is `false`. The homelab turns it on in `bootstrap/values/postgres.yaml`.
+
+**Why the homelab needs it.** On Ubuntu kernels 7.0.0-43 and later, the container runtime's
+AppArmor profile is applied as a stack. Processes inside one container can then carry two labels
+(`cri-containerd.apparmor.d` and `cri-containerd.apparmor.d//&unconfined`), and the profile allows
+signals only between identical labels. Postgres needs to signal its own processes, most of all at
+the end of crash recovery, so after an unclean stop it crash-loops with
+`could not signal for checkpoint: Permission denied`. The node's kernel log shows:
+
+```text
+apparmor="DENIED" operation="signal" profile="cri-containerd.apparmor.d" comm="postgres" … peer="cri-containerd.apparmor.d//&unconfined"
+```
+
+This took HL Budget down from 2026-11-23 to 2026-11-25 (hl-budget-spec
+`specs/012-postgres-apparmor-fix`).
+
+**What it keeps.** Setting the pod security context replaces the operator's default, so the
+template repeats it: `runAsNonRoot`, user, group and `fsGroup` 26, seccomp `RuntimeDefault`. Only
+`appArmorProfile: Unconfined` is new. The container security context is not touched, so the
+operator's defaults stay in force: all capabilities dropped, no privilege escalation, read-only
+root file system. Only the AppArmor layer is removed, and only for the Postgres pods.
+
+**When to turn it off.** After a kernel upgrade, check the node:
+
+```sh
+journalctl -k -b | grep -c 'DENIED.*signal.*comm="postgres"'
+```
+
+If it stays at 0 across a Postgres restart with the exemption off (try on a disposable cluster on
+the same kernel first), set the value to `false` and upgrade with `bootstrap/install.sh --only postgres`.
+
 ## Deviation from the constitution
 
-None.
+None. The reduced hardening above is the justification Principle VII asks for: the alternatives
+(a custom node-installed AppArmor profile, pinning an old kernel) cost more to operate.
 
 ## Values
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| cluster.appArmorUnconfined | bool | `false` | Run the Postgres pods AppArmor-unconfined (workaround for the kernel >= 7.0.0-43 regression; see "AppArmor exemption") |
 | cluster.imageName | string | `"ghcr.io/cloudnative-pg/postgresql:17.7@sha256:dab846a58e8ca3c8872584ab2225ee93fb9e659a87c52e163fefae9275b46f51"` |  |
 | cluster.instances | int | `1` |  |
 | cluster.name | string | `"postgres"` |  |
