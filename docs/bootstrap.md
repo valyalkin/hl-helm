@@ -69,6 +69,27 @@ bootstrap/vault-init.sh --keys-file <path>
 Workloads that were already running keep working: their Kubernetes Secrets persist, and sealing
 Vault stops only *new* syncs and rotations until it is unsealed.
 
+The script, like `install.sh`, uses the current kube context. If that is not the homelab, point it
+there (`KUBECONFIG=~/.kube/homelab.yaml bootstrap/vault-init.sh …` or `--context <ctx>`). Against
+another cluster's Vault the unseal fails with `failed to decrypt keys … message authentication
+failed`: that means the wrong cluster, not a bad key.
+
+Then check the database and the apps that use it:
+
+```sh
+kubectl -n postgres get pods        # postgres-1 1/1 Running
+kubectl get pods -A | grep -vE 'Running|Completed'
+```
+
+If `postgres-1` crash-loops with `could not signal for checkpoint: Permission denied`, the node's
+kernel is blocking Postgres's own signals through AppArmor. On the node,
+`journalctl -k | grep 'DENIED.*signal.*comm="postgres"'` shows it. Make sure
+`cluster.appArmorUnconfined: true` is set in `bootstrap/values/postgres.yaml`; see the Postgres
+chart README, "AppArmor exemption". CloudNativePG does not roll a pod whose instance it cannot
+reach, so after upgrading the chart, delete the crash-looping pod
+(`kubectl -n postgres delete pod postgres-1`). The operator recreates it on the same volume. Never
+delete the PVC or the `Cluster`.
+
 ## Certificates
 
 One Let's Encrypt certificate, for `valyalkin.com` and `*.valyalkin.com`, is Traefik's default and
