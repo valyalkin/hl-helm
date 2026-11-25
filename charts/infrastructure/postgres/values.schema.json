@@ -128,6 +128,10 @@
         },
         "resources": {
           "type": "object"
+        },
+        "appArmorUnconfined": {
+          "type": "boolean",
+          "description": "Run the Postgres pods with AppArmor Unconfined (kernel >= 7.0.0-43 workaround)."
         }
       }
     },

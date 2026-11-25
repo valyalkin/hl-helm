@@ -1,0 +1,35 @@
+suite: postgres cluster apparmor exemption
+templates: [templates/cluster.yaml]
+release: {name: postgres, namespace: postgres}
+tests:
+  - it: runs the pods AppArmor-unconfined and keeps the operator's pod defaults when on
+    set: {cluster.appArmorUnconfined: true}
+    documentSelector: {path: kind, value: Cluster}
+    asserts:
+      - equal:
+          path: spec.podSecurityContext
+          value:
+            runAsNonRoot: true
+            runAsUser: 26
+            runAsGroup: 26
+            fsGroup: 26
+            seccompProfile: {type: RuntimeDefault}
+            appArmorProfile: {type: Unconfined}
+      - notExists: {path: spec.securityContext}
+
+  - it: leaves the operator's defaults alone when off
+    set: {cluster.appArmorUnconfined: false}
+    documentSelector: {path: kind, value: Cluster}
+    asserts:
+      - notExists: {path: spec.podSecurityContext}
+      - notExists: {path: spec.securityContext}
+
+  - it: keeps AppArmor by default
+    documentSelector: {path: kind, value: Cluster}
+    asserts:
+      - notExists: {path: spec.podSecurityContext}
+
+  - it: rejects a value that is not a boolean
+    set: {cluster.appArmorUnconfined: "yes"}
+    asserts:
+      - failedTemplate: {errorPattern: "appArmorUnconfined"}

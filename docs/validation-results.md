@@ -56,6 +56,7 @@ Self-heal timing: deleting `nginx-web` once was recreated in 41 s; ten deletions
 | SC-018 / SC-030 | one command (`bootstrap/install.sh`); Vault initialised, unsealed and configured by the script |
 | FR-045 | a new `charts/apps/<name>` directory was deployed into its own namespace by Argo CD with no manifest written; removing it pruned the Application and namespace |
 | Sealed Vault | restarting Vault leaves it sealed; Redis, Postgres and nginx kept running; `bootstrap/vault-init.sh` unsealed it and VSO resumed syncing |
+| Postgres crash recovery (2026-11-25, real server, kernel 7.0.0-44) | with `cluster.appArmorUnconfined: true`, the crash-looping `postgres-1` was recreated on the same PVC and finished recovery (`end-of-recovery` checkpoint) in 16 s; then a forced unclean kill (`--grace-period=0 --force`) recovered in 13 s with 0 AppArmor signal denials; `install.sh --only postgres --diff` afterwards: no differences (hl-budget-spec 012) |
 
 ## Not verified
 

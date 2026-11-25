@@ -15,6 +15,19 @@ spec:
     storageClass: {{ required "cluster.storage.storageClass is required" .Values.cluster.storage.storageClass }}
   resources:
     {{- toYaml .Values.cluster.resources | nindent 4 }}
+  {{- if .Values.cluster.appArmorUnconfined }}
+  # cluster.appArmorUnconfined: this replaces the operator's default pod security context, so the
+  # defaults are repeated here and only appArmorProfile is new (README "AppArmor exemption").
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 26
+    runAsGroup: 26
+    fsGroup: 26
+    seccompProfile:
+      type: RuntimeDefault
+    appArmorProfile:
+      type: Unconfined
+  {{- end }}
   {{- with .Values.databases }}
   managed:
     roles:

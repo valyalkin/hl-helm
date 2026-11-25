@@ -1,0 +1,5 @@
+# Renders and schema-checks the AppArmor exemption the homelab turns on (hl-budget-spec 012).
+databases:
+  - name: todo
+cluster:
+  appArmorUnconfined: true

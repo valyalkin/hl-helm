@@ -3,3 +3,8 @@
 databases:
   - name: nginx
   - {name: hl_budget, namespace: hl-budget}   # Postgres names cannot contain a hyphen
+
+# The homelab node runs Ubuntu kernel >= 7.0.0-43, where AppArmor blocks Postgres's own signals and
+# crash recovery fails (hl-budget-spec 012). The chart default stays false.
+cluster:
+  appArmorUnconfined: true
